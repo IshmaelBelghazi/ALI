@@ -1,5 +1,6 @@
 """Functions for creating data streams."""
 from fuel.datasets import CIFAR10, SVHN, CelebA
+from fuel.datasets.toy import Spiral
 from fuel.schemes import ShuffledScheme
 from fuel.streams import DataStream
 
@@ -78,4 +79,34 @@ def create_tiny_imagenet_data_streams(batch_size, monitoring_batch_size,
         valid_set,
         iteration_scheme=ShuffledScheme(
             4096, monitoring_batch_size, rng=rng))
+    return main_loop_stream, train_monitor_stream, valid_monitor_stream
+
+def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
+                               num_examples=100000, classes=1, cycles=2,
+                               noise=0.1):
+    train_set = Spiral(num_examples=num_examples,
+                       classes=classes,
+                       cycles=cycles,
+                       noise=noise,
+                       sources=('features', ))
+
+    valid_set = Spiral(num_examples=num_examples//5,
+                       classes=classes,
+                       cycles=cycles,
+                       noise=noise,
+                       sources=('features', )
+    )
+
+    main_loop_stream = DataStream.default_stream(
+        train_set, iteration_scheme=ShuffledScheme(
+            examples_set=train_set.num_examples,
+            batch_size=batch_size, rng=rng))
+
+    train_monitor_stream = DataStream.default_stream(
+        train_set, iteration_scheme=ShuffledScheme(
+            examples_set=5000, batch_size=batch_size, rng=rng))
+
+    valid_monitor_stream = DataStream.default_stream(
+        valid_set, iteration_scheme=ShuffledScheme(
+            examples_set=5000, batch_size=batch_size, rng=rng))
     return main_loop_stream, train_monitor_stream, valid_monitor_stream
