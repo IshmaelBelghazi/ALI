@@ -99,15 +99,12 @@ def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
 
     main_loop_stream = DataStream.default_stream(
         train_set, iteration_scheme=ShuffledScheme(
-            examples_set=train_set.num_examples,
-            batch_size=batch_size, rng=rng))
+            train_set.num_examples, batch_size=batch_size, rng=rng))
 
     train_monitor_stream = DataStream.default_stream(
-        train_set, iteration_scheme=ShuffledScheme(
-            examples_set=5000, batch_size=batch_size, rng=rng))
+        train_set, iteration_scheme=ShuffledScheme(5000, batch_size, rng=rng))
 
     valid_monitor_stream = DataStream.default_stream(
-        valid_set, iteration_scheme=ShuffledScheme(
-            examples_set=5000, batch_size=batch_size, rng=rng))
+        valid_set, iteration_scheme=ShuffledScheme(5000, batch_size, rng=rng))
 
     return main_loop_stream, train_monitor_stream, valid_monitor_stream
