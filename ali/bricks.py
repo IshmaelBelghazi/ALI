@@ -1,9 +1,9 @@
 """ALI-related bricks."""
+from theano import tensor
 from blocks.bricks.base import Brick, application, lazy
 from blocks.bricks.conv import ConvolutionalSequence
 from blocks.bricks.interfaces import Initializable, Random
 from blocks.select import Selector
-from theano import tensor
 
 
 class ALI(Initializable, Random):
@@ -125,6 +125,7 @@ class ALI(Initializable, Random):
     def compute_losses(self, x, z, application_call):
         z_hat = self.sample_z_hat(x)
         x_tilde = self.sample_x_tilde(z)
+
         data_preds, sample_preds = self.get_predictions(x, z_hat, x_tilde, z)
 
         discriminator_loss = (tensor.nnet.softplus(-data_preds) +
@@ -143,7 +144,101 @@ class ALI(Initializable, Random):
         return self.sample_x_tilde(self.sample_z_hat(x))
 
 
-class FullyConnectedALI(ALI):
+class FCALIBase(Initializable, Random):
+    """Adversarial learned inference Fully Connected abstract class.
+    """
+    def __init__(self, **kwargs):
+        super(FCALIBase, self).__init__(**kwargs)
+        self._discriminator_bricks = []
+        self._generator_bricks = []
+
+    @property
+    def discriminator_parameters(self):
+        return list(
+            Selector(self._discriminator_bricks).get_parameters().values())
+
+    @property
+    def generator_parameters(self):
+        return list(
+            Selector(self._generator_bricks).get_parameters().values())
+
+    @application(inputs=['x'], outputs=['z_hat'])
+    def sample_z_hat(self, x, application_call):
+        params = self.encoder.apply(x)
+        mu, log_sigma = self._split_z_params(params)
+        sigma = tensor.exp(log_sigma)
+        epsilon = self.theano_rng.normal(size=mu.shape)
+        z = mu + sigma * epsilon
+
+        # application_call.add_auxiliary_variable(mu.mean(), name='mu_avg')
+        # application_call.add_auxiliary_variable(mu.std(), name='mu_std')
+        # application_call.add_auxiliary_variable(mu.min(), name='mu_min')
+        # application_call.add_auxiliary_variable(mu.max(), name='mu_max')
+        # application_call.add_auxiliary_variable(
+        #     (mu ** 2).sum(axis=[1, 2, 3]).mean(), name='mu_squared_norm')
+        # application_call.add_auxiliary_variable(sigma.mean(), name='sigma_avg')
+        # application_call.add_auxiliary_variable(sigma.std(), name='sigma_std')
+        # application_call.add_auxiliary_variable(sigma.min(), name='sigma_min')
+        # application_call.add_auxiliary_variable(sigma.max(), name='sigma_max')
+        # application_call.add_auxiliary_variable(
+        #     (log_sigma ** 2).sum(axis=[1, 2, 3]).mean(),
+        #     name='log_sigma_squared_norm')
+        # application_call.add_auxiliary_variable(
+        #     (z ** 2).sum(axis=[1, 2, 3]).mean(), name='z_squared_norm')
+
+        return z
+
+    @application(inputs=['z'], outputs=['x_tilde'])
+    def sample_x_tilde(self, z, application_call):
+        x_tilde = self.decoder.apply(z)
+
+        application_call.add_auxiliary_variable(x_tilde.mean(), name='avg')
+        application_call.add_auxiliary_variable(x_tilde.std(), name='std')
+
+        return x_tilde
+
+    @application(inputs=['x', 'z_hat', 'x_tilde', 'z'],
+                 outputs=['data_preds', 'sample_preds'])
+    def get_predictions(self, x, z_hat, x_tilde, z, application_call):
+        data_sample_preds = self._get_data_sample_preds(x, z_hat, x_tilde, z)
+        data_preds = data_sample_preds[:x.shape[0]]
+        sample_preds = data_sample_preds[x.shape[0]:]
+
+        application_call.add_auxiliary_variable(
+            tensor.nnet.sigmoid(data_preds).mean(), name='data_accuracy')
+        application_call.add_auxiliary_variable(
+            (1 - tensor.nnet.sigmoid(sample_preds)).mean(),
+            name='sample_accuracy')
+
+        return data_preds, sample_preds
+
+    @application(inputs=['x', 'z'],
+                 outputs=['discriminator_loss', 'generator_loss'])
+    def compute_losses(self, x, z, application_call):
+        z_hat = self.sample_z_hat(x)
+        x_tilde = self.sample_x_tilde(z)
+        data_preds, sample_preds = self.get_predictions(x, z_hat, x_tilde, z)
+
+        discriminator_loss = (tensor.nnet.softplus(-data_preds) +
+                              tensor.nnet.softplus(sample_preds)).mean()
+        generator_loss = (tensor.nnet.softplus(data_preds) +
+                          tensor.nnet.softplus(-sample_preds)).mean()
+
+        return discriminator_loss, generator_loss
+
+    @application(inputs=['z'], outputs=['samples'])
+    def sample(self, z):
+        return self.sample_x_tilde(z)
+
+    @application(inputs=['x'], outputs=['reconstructions'])
+    def reconstruct(self, x, in_expectation=False):
+        if in_expectation:
+            mu, log_sigma = self._split_z_params(self.encoder.apply(x))
+            return self.sample_x_tilde(mu)
+        else:
+            return self.sample_x_tilde(self.sample_z_hat(x))
+
+class FullyConnectedALI(FCALIBase):
     """Adversarial learned inference on fully-connected networks.
 
     Parameters
@@ -172,57 +267,15 @@ class FullyConnectedALI(ALI):
         self._discriminator_bricks.append(self.discriminator)
         self._generator_bricks.extend([self.encoder, self.decoder])
 
-    @application(inputs=['x'], outputs=['mu_x, sigma_x'])
-    def encode(self, x, application_call):
-        params = self.encoder.apply(x)
-        mu, log_sigma = params[:, :self._nlat], params[:, self._nlat:]
-        sigma = tensor.exp(log_sigma)
-        return mu, sigma
-
-    @application(inputs=['x'], outputs=['z_hat'])
-    def sample_z_hat(self, x, application_call):
-        mu, sigma = self.encode(x)
-        epsilon = self.theano_rng.normal(size=mu.shape)
-        z = mu + sigma * epsilon
-
-        application_call.add_auxiliary_variable(mu.mean(), name='mu_avg')
-        application_call.add_auxiliary_variable(mu.std(), name='mu_std')
-        application_call.add_auxiliary_variable(mu.min(), name='mu_min')
-        application_call.add_auxiliary_variable(mu.max(), name='mu_max')
-
-        application_call.add_auxiliary_variable(sigma.mean(), name='sigma_avg')
-        application_call.add_auxiliary_variable(sigma.std(), name='sigma_std')
-        application_call.add_auxiliary_variable(sigma.min(), name='sigma_min')
-        application_call.add_auxiliary_variable(sigma.max(), name='sigma_max')
-
-        return z
-
-    @application(inputs=['z'], outputs=['x_tilde'])
-    def sample_x_tilde(self, z, application_call):
-        x_tilde = self.decoder.apply(z)
-
-        application_call.add_auxiliary_variable(x_tilde.mean(), name='avg')
-        application_call.add_auxiliary_variable(x_tilde.std(), name='std')
-
-        return x_tilde
-
-    @application(inputs=['z'], outputs=['samples'])
-    def sample(self, z):
-        return self.sample_x_tilde(z)
-
-    @application(inputs=['x'], outputs=['reconstructions'])
-    def reconstruct(self, x):
-        return self.sample_x_tilde(self.sample_z_hat(x))
-
     def _split_z_params(self, params):
-        nlat = self.encoder.input_dim // 2
+        nlat = self.encoder.output_dim // 2
         return params[:, :nlat], params[:, nlat:]
 
     def _get_data_sample_preds(self, x, z_hat, x_tilde, z):
         return self.discriminator.apply(
             tensor.concatenate(
-                [tensor.concatenate([x, x_tilde], axis=0),
-                 tensor.concatenate([z_hat, z], axis=0)], axis=1))
+                [tensor.concatenate([x, x_tilde], axis=1),
+                 tensor.concatenate([z_hat, z], axis=1)], axis=0))
 
 
 class GAN(Initializable, Random):
