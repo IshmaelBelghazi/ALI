@@ -81,6 +81,7 @@ def create_tiny_imagenet_data_streams(batch_size, monitoring_batch_size,
             4096, monitoring_batch_size, rng=rng))
     return main_loop_stream, train_monitor_stream, valid_monitor_stream
 
+
 def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
                                num_examples=100000, classes=1, cycles=2,
                                noise=0.1):
@@ -94,8 +95,7 @@ def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
                        classes=classes,
                        cycles=cycles,
                        noise=noise,
-                       sources=('features', )
-    )
+                       sources=('features', ))
 
     main_loop_stream = DataStream.default_stream(
         train_set, iteration_scheme=ShuffledScheme(
@@ -109,4 +109,5 @@ def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
     valid_monitor_stream = DataStream.default_stream(
         valid_set, iteration_scheme=ShuffledScheme(
             examples_set=5000, batch_size=batch_size, rng=rng))
+
     return main_loop_stream, train_monitor_stream, valid_monitor_stream

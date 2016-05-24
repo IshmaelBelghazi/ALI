@@ -42,6 +42,7 @@ def bn_brick():
     """Instantiates a SpatialBatchNormalization brick."""
     return SpatialBatchNormalization(name=name_generator())
 
+
 def as_array(obj, dtype=theano.config.floatX):
     """Converts to ndarray of specified dtype"""
     return numpy.asarray(obj, dtype=dtype)
