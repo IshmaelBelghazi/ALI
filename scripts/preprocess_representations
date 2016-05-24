@@ -22,7 +22,8 @@ def preprocess_svhn(main_loop, save_path):
     ali, = Selector(main_loop.model.top_bricks).select('/ali').bricks
     x = tensor.tensor4('features')
     y = tensor.imatrix('targets')
-    mu, log_sigma = ali._split_z_params(ali.sample_z_hat(x))
+    params = ali.encoder.apply(x)
+    mu, log_sigma = params[:, :ali._nlat], params[:, ali._nlat:]
     acts = []
     acts += [mu]
     acts += VariableFilter(
