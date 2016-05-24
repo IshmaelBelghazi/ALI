@@ -143,6 +143,88 @@ class ALI(Initializable, Random):
         return self.sample_x_tilde(self.sample_z_hat(x))
 
 
+class FullyConnectedALI(ALI):
+    """Adversarial learned inference on fully-connected networks.
+
+    Parameters
+    ----------
+    encoder : :class:`blocks.bricks.simple.MLP`
+        Encoder network. Its input size should be the dimensionality
+        of x, and its output size should be twice the dimensionality
+        of z. Its output is expected to be linear so that
+        encoder.apply(x)[:, :z_dim] = mu and
+        encoder.apply(x)[:, z_dim:] = log_sigma.
+    decoder : :class:`blocks.bricks.simple.MLP`
+        Decoder network. Its input size should be the dimensionality
+        of z, and its output size should be the dimensionality of x.
+    discriminator : :class:`blocks.bricks.simple.MLP`
+        Discriminator network. Its input size should be the
+        dimensionality of x **plus** the dimensionality of z.
+
+    """
+    def __init__(self, encoder, decoder, discriminator, **kwargs):
+        self.encoder = encoder
+        self.decoder = decoder
+        self.discriminator = discriminator
+
+        super(FullyConnectedALI, self).__init__(**kwargs)
+        self.children.extend([self.encoder, self.decoder, self.discriminator])
+        self._discriminator_bricks.append(self.discriminator)
+        self._generator_bricks.extend([self.encoder, self.decoder])
+
+    @application(inputs=['x'], outputs=['mu_x, sigma_x'])
+    def encode(self, x, application_call):
+        params = self.encoder.apply(x)
+        mu, log_sigma = params[:, :self._nlat], params[:, self._nlat:]
+        sigma = tensor.exp(log_sigma)
+        return mu, sigma
+
+    @application(inputs=['x'], outputs=['z_hat'])
+    def sample_z_hat(self, x, application_call):
+        mu, sigma = self.encode(x)
+        epsilon = self.theano_rng.normal(size=mu.shape)
+        z = mu + sigma * epsilon
+
+        application_call.add_auxiliary_variable(mu.mean(), name='mu_avg')
+        application_call.add_auxiliary_variable(mu.std(), name='mu_std')
+        application_call.add_auxiliary_variable(mu.min(), name='mu_min')
+        application_call.add_auxiliary_variable(mu.max(), name='mu_max')
+
+        application_call.add_auxiliary_variable(sigma.mean(), name='sigma_avg')
+        application_call.add_auxiliary_variable(sigma.std(), name='sigma_std')
+        application_call.add_auxiliary_variable(sigma.min(), name='sigma_min')
+        application_call.add_auxiliary_variable(sigma.max(), name='sigma_max')
+
+        return z
+
+    @application(inputs=['z'], outputs=['x_tilde'])
+    def sample_x_tilde(self, z, application_call):
+        x_tilde = self.decoder.apply(z)
+
+        application_call.add_auxiliary_variable(x_tilde.mean(), name='avg')
+        application_call.add_auxiliary_variable(x_tilde.std(), name='std')
+
+        return x_tilde
+
+    @application(inputs=['z'], outputs=['samples'])
+    def sample(self, z):
+        return self.sample_x_tilde(z)
+
+    @application(inputs=['x'], outputs=['reconstructions'])
+    def reconstruct(self, x):
+        return self.sample_x_tilde(self.sample_z_hat(x))
+
+    def _split_z_params(self, params):
+        nlat = self.encoder.input_dim // 2
+        return params[:, :nlat], params[:, nlat:]
+
+    def _get_data_sample_preds(self, x, z_hat, x_tilde, z):
+        return self.discriminator.apply(
+            tensor.concatenate(
+                [tensor.concatenate([x, x_tilde], axis=0),
+                 tensor.concatenate([z_hat, z], axis=0)], axis=1))
+
+
 class GAN(Initializable, Random):
     """Generative adversarial networks.
 
