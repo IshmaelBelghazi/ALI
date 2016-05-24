@@ -71,14 +71,14 @@ def main(dataset_path, use_c, log_min, log_max, num_steps):
         s = s / 26032.0
         error_rates.append(1 - s)
 
-    print('Vest error rate = {} +- {} '.format(numpy.mean(error_rates),
+    print('Test error rate = {} +- {} '.format(numpy.mean(error_rates),
                                                numpy.std(error_rates)))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ALI-based semi-supervised "
                                                  "training on SVHN")
-    parser.add_argument("main_loop_path", type=str,
+    parser.add_argument("dataset_path", type=str,
                         help="path to the saved main loop")
     parser.add_argument("--use-c", type=float, default=None,
                         help="evaluate using a specific C value")
@@ -89,5 +89,5 @@ if __name__ == "__main__":
     parser.add_argument("--num-steps", type=int, default=50,
                         help="number of values to try")
     args = parser.parse_args()
-    main(args.main_loop_path, args.use_c, args.log_min, args.log_max,
+    main(args.dataset_path, args.use_c, args.log_min, args.log_max,
          args.num_steps)
