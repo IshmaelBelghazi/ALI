@@ -4,7 +4,8 @@ from fuel.datasets.toy import Spiral
 from fuel.schemes import ShuffledScheme
 from fuel.streams import DataStream
 
-from .datasets import (TinyILSVRC2012, GaussianMixture, )
+from .datasets import TinyILSVRC2012, GaussianMixture
+
 
 def create_svhn_data_streams(batch_size, monitoring_batch_size, rng=None):
     train_set = SVHN(2, ('extra',), sources=('features',))
@@ -84,20 +85,15 @@ def create_tiny_imagenet_data_streams(batch_size, monitoring_batch_size,
 def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
                                num_examples=100000, classes=1, cycles=2,
                                noise=0.1):
-    train_set = Spiral(num_examples=num_examples,
-                       classes=classes,
-                       cycles=cycles,
-                       noise=noise,
-                       sources=('features', ))
+    train_set = Spiral(num_examples=num_examples, classes=classes,
+                       cycles=cycles, noise=noise, sources=('features',))
 
-    valid_set = Spiral(num_examples=num_examples//5,
-                       classes=classes,
-                       cycles=cycles,
-                       noise=noise,
-                       sources=('features', ))
+    valid_set = Spiral(num_examples=num_examples // 5, classes=classes,
+                       cycles=cycles, noise=noise, sources=('features',))
 
     main_loop_stream = DataStream.default_stream(
-        train_set, iteration_scheme=ShuffledScheme(
+        train_set,
+        iteration_scheme=ShuffledScheme(
             train_set.num_examples, batch_size=batch_size, rng=rng))
 
     train_monitor_stream = DataStream.default_stream(
@@ -112,20 +108,17 @@ def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
 def create_gaussian_mixture_data_streams(batch_size, monitoring_batch_size,
                                          means, variances=None, priors=None,
                                          rng=None, num_examples=100000):
-    train_set = GaussianMixture(num_examples=num_examples,
-                                means=means,
-                                variances=variances,
-                                priors=priors,
-                                rng=rng, sources=('features', ))
+    train_set = GaussianMixture(num_examples=num_examples, means=means,
+                                variances=variances, priors=priors,
+                                rng=rng, sources=('features',))
 
-    valid_set = GaussianMixture(num_examples=num_examples//5,
-                                means=means,
-                                variances=variances,
-                                priors=priors,
-                                rng=rng, sources=('features', ))
+    valid_set = GaussianMixture(num_examples=num_examples // 5,
+                                means=means, variances=variances,
+                                priors=priors, rng=rng, sources=('features',))
 
     main_loop_stream = DataStream(
-        train_set, iteration_scheme=ShuffledScheme(
+        train_set,
+        iteration_scheme=ShuffledScheme(
             train_set.num_examples, batch_size=batch_size, rng=rng))
 
     train_monitor_stream = DataStream(

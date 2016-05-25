@@ -1,215 +1,131 @@
-from theano import tensor
+import argparse
+import logging
+
 from blocks.algorithms import Adam
-from blocks.bricks import (MLP, Rectifier, Logistic, Identity, LinearMaxout,
-                           Linear, Tanh, LeakyRectifier, )
-from blocks.bricks.bn import (BatchNormalization, BatchNormalizedMLP, )
+from blocks.bricks import MLP, Rectifier, Identity, LinearMaxout, Linear
+from blocks.bricks.bn import BatchNormalization
 from blocks.bricks.sequences import Sequence
 from blocks.extensions import FinishAfter, Timing, Printing, ProgressBar
 from blocks.extensions.monitoring import DataStreamMonitoring
 from blocks.extensions.saveload import Checkpoint
+from blocks.filter import VariableFilter
 from blocks.graph import ComputationGraph, apply_dropout
 from blocks.graph.bn import (batch_normalization,
-                             get_batch_normalization_updates, )
-from blocks.filter import VariableFilter
+                             get_batch_normalization_updates)
 from blocks.initialization import IsotropicGaussian, Constant
-from blocks.model import Model
 from blocks.main_loop import MainLoop
+from blocks.model import Model
 from blocks.roles import INPUT
+from theano import tensor
 
 from ali.algorithms import ali_algorithm
-from ali.streams import create_spiral_data_streams
 from ali.bricks import FullyConnectedALI
-
-import logging
-import argparse
+from ali.streams import create_spiral_data_streams
 
 INPUT_DIM = 2
 NLAT = 2
 GAUSSIAN_INIT = IsotropicGaussian(std=0.02)
 ZERO_INIT = Constant(0.0)
 MAXOUT_PIECES = 2
-WITH_DROPOUT = True
-NUM_EPOCHS = 1000
-BATCH_SIZE = 100
 GEN_HIDDEN = 1000
-GEN_ACTIVATION = Rectifier #Rectifier #partial(LeakyRectifier, leak=0.2)
+GEN_ACTIVATION = Rectifier
 DISC_HIDDEN = 400
 DISC_ACTIVATION = Rectifier
-
 LEARNING_RATE = 0.001
 BETA1 = 0.5
-
+NUM_EPOCHS = 200
 BATCH_SIZE = 100
 MONITORING_BATCH_SIZE = 500
-SEED = None
 
-def create_generator(input_dim, hidden_activation,
-                     n_hidden, nlat,
-                     weights_init, biases_init,
-                     linear_init=None,
-                     output_act=Logistic):
 
-    # Encoder
+def create_model_brick():
     encoder = MLP(
-        dims=[input_dim, n_hidden, n_hidden, 2 * nlat],
-        activations=[Sequence([BatchNormalization(n_hidden).apply,
-                               hidden_activation().apply],
+        dims=[INPUT_DIM, GEN_HIDDEN, GEN_HIDDEN, 2 * NLAT],
+        activations=[Sequence([BatchNormalization(GEN_HIDDEN).apply,
+                               GEN_ACTIVATION().apply],
                               name='encoder_h1'),
-                     Sequence([BatchNormalization(n_hidden).apply,
-                               hidden_activation().apply],
-                               name='encoder_h2'),
+                     Sequence([BatchNormalization(GEN_HIDDEN).apply,
+                               GEN_ACTIVATION().apply],
+                              name='encoder_h2'),
                      Identity(name='encoder_out')],
         use_bias=False,
-        weights_init=weights_init,
-        biases_init=biases_init,
         name='encoder')
-    encoder.push_allocation_config()
-    encoder.linear_transformations[-1].use_bias = True
-    if linear_init is not None:
-        encoder.linear_transformations[-1].weights_init = linear_init
-    encoder.initialize()
 
-    # Decoder
     decoder = MLP(
-        dims=[nlat, n_hidden, n_hidden, input_dim],
-        activations=[Sequence([BatchNormalization(n_hidden).apply,
-                               hidden_activation().apply],
+        dims=[NLAT, GEN_HIDDEN, GEN_HIDDEN, INPUT_DIM],
+        activations=[Sequence([BatchNormalization(GEN_HIDDEN).apply,
+                               GEN_ACTIVATION().apply],
                               name='decoder_h1'),
-                     Sequence([BatchNormalization(n_hidden).apply,
-                               hidden_activation().apply],
+                     Sequence([BatchNormalization(GEN_HIDDEN).apply,
+                               GEN_ACTIVATION().apply],
                               name='decoder_h2'),
-                     output_act(name='decoder_out')],
+                     Identity(name='decoder_out')],
         use_bias=False,
-        weights_init=weights_init,
-        biases_init=biases_init,
         name='decoder')
-
-    decoder.push_allocation_config()
-    decoder.linear_transformations[-1].use_bias = True
-    decoder.initialize()
-
-    return encoder, decoder
-
-
-def create_discriminator(input_dim, nlat,
-                         hidden_activation,
-                         n_hidden,
-                         weights_init,
-                         biases_init,
-                         output_init=None):
-
-    # Specifying discriminator
-    # Dimensions
-    dims=[input_dim + nlat, n_hidden, n_hidden, 1]
-    # Activations
-    activations = [Sequence([hidden_activation().apply],
-                            name='discriminator_h1'),
-                   Sequence([hidden_activation().apply],
-                            name='discriminator_h2'),
-                   Linear(name='discriminator_out')]
-
-    discriminator = MLP(dims=dims,
-                        activations=activations,
-                        use_bias=True,
-                        weights_init=weights_init,
-                        biases_init=biases_init,
-                        name='discriminator')
-
-    discriminator.push_allocation_config()
-    if output_init is not None:
-        discriminator.linear_transformations[-1].weights_init = output_init
-    discriminator.initialize()
-
-    return discriminator
-
-
-def create_maxout_discriminator(input_dim, nlat,
-                                n_hidden,
-                                num_pieces,
-                                weights_init,
-                                biases_init,
-                                output_init=None):
 
     discriminator = Sequence(
         application_methods=[
             LinearMaxout(
-                input_dim=input_dim + nlat,
-                output_dim=n_hidden,
-                num_pieces=num_pieces,
-                weights_init=weights_init,
-                biases_init=biases_init,
+                input_dim=INPUT_DIM + NLAT,
+                output_dim=DISC_HIDDEN,
+                num_pieces=MAXOUT_PIECES,
+                weights_init=GAUSSIAN_INIT,
+                biases_init=ZERO_INIT,
                 name='discriminator_h1').apply,
             LinearMaxout(
-                input_dim=n_hidden,
-                output_dim=n_hidden,
-                num_pieces=num_pieces,
-                weights_init=weights_init,
-                biases_init=biases_init,
+                input_dim=DISC_HIDDEN,
+                output_dim=DISC_HIDDEN,
+                num_pieces=MAXOUT_PIECES,
+                weights_init=GAUSSIAN_INIT,
+                biases_init=ZERO_INIT,
                 name='discriminator_h2').apply,
             Linear(
-                input_dim=n_hidden,
+                input_dim=DISC_HIDDEN,
                 output_dim=1,
-                weights_init=weights_init if output_init is None else output_init,
-                biases_init=biases_init,
+                weights_init=GAUSSIAN_INIT,
+                biases_init=ZERO_INIT,
                 name='discriminator_out').apply],
         name='discriminator')
 
-    discriminator.push_allocation_config()
-    discriminator.initialize()
-
-    return discriminator
-
-
-def create_model_brick():
-    encoder, decoder = create_generator(input_dim=INPUT_DIM,
-                                        hidden_activation=GEN_ACTIVATION,
-                                        n_hidden=GEN_HIDDEN, nlat=NLAT,
-                                        weights_init=GAUSSIAN_INIT,
-                                        biases_init=ZERO_INIT,
-                                        output_act=Identity)
-
-    discriminator = create_maxout_discriminator(input_dim=INPUT_DIM,
-                                                nlat=NLAT,
-                                                num_pieces=MAXOUT_PIECES,
-                                                n_hidden=DISC_HIDDEN,
-                                                weights_init=GAUSSIAN_INIT,
-                                                biases_init=ZERO_INIT)
-
-    ali = FullyConnectedALI(encoder=encoder, decoder=decoder,
-                            discriminator=discriminator)
+    ali = FullyConnectedALI(
+        encoder=encoder, decoder=decoder, discriminator=discriminator,
+        weights_init=GAUSSIAN_INIT, biases_init=ZERO_INIT, name='ali')
+    ali.push_allocation_config()
+    encoder.linear_transformations[-1].use_bias = True
+    decoder.linear_transformations[-1].use_bias = True
     ali.initialize()
+
     return ali
+
 
 def create_models():
     ali = create_model_brick()
     x = tensor.matrix('features')
-    z = ali.theano_rng.normal(
-        size=(x.shape[0], ali.decoder.input_dim))
+    z = ali.theano_rng.normal(size=(x.shape[0], ali.decoder.input_dim))
 
     def _create_model(with_dropout):
         cg = ComputationGraph(ali.compute_losses(x, z))
         if with_dropout:
-            child_idx = [n for n, child in enumerate(
-                ali.discriminator.children) if 'linear' in child.name]
-            d_upper_linear = [ali.discriminator.children[n] for n in child_idx[1:]]
-            upper_disc_inputs = VariableFilter(bricks=d_upper_linear,
-                                               roles=[INPUT])(cg.variables)
-            interm_cg = apply_dropout(cg, upper_disc_inputs, 0.5)
-            discriminator_inputs = VariableFilter(bricks=[ali.discriminator],
-                                                  roles=[INPUT])(interm_cg)
-            cg = apply_dropout(interm_cg, discriminator_inputs, 0.2)
+            inputs = VariableFilter(
+                bricks=ali.discriminator.children[1:],
+                roles=[INPUT])(cg.variables)
+            cg = apply_dropout(cg, inputs, 0.5)
+            inputs = VariableFilter(
+                bricks=[ali.discriminator], roles=[INPUT])(cg)
+            cg = apply_dropout(cg, inputs, 0.2)
 
         return Model(cg.outputs)
 
     model = _create_model(with_dropout=False)
     with batch_normalization(ali):
-        bn_model = _create_model(with_dropout=WITH_DROPOUT)
+        bn_model = _create_model(with_dropout=True)
 
     pop_updates = list(
         set(get_batch_normalization_updates(bn_model, allow_duplicates=True)))
     bn_updates = [(p, m * 0.05 + p * 0.95) for p, m in pop_updates]
 
     return model, bn_model, bn_updates
+
 
 def create_main_loop(save_path):
     model, bn_model, bn_updates = create_models()
@@ -246,18 +162,11 @@ def create_main_loop(save_path):
                          algorithm=algorithm, extensions=extensions)
     return main_loop
 
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description='Train ALI on Spiral')
     parser.add_argument("--save-path", type=str, default='ali_spiral.tar',
                         help="main loop save path")
     args = parser.parse_args()
-    main_loop = create_main_loop(args.save_path)
-    main_loop.run()
-
-
-
-
-
-
-
+    create_main_loop(args.save_path).run()

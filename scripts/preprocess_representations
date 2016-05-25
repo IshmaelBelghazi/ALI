@@ -27,8 +27,7 @@ def preprocess_svhn(main_loop, save_path):
     acts = []
     acts += [mu]
     acts += VariableFilter(
-        bricks=[ali.encoder.layers[-15], ali.encoder.layers[-12],
-                ali.encoder.layers[-9], ali.encoder.layers[-6],
+        bricks=[ali.encoder.layers[-9], ali.encoder.layers[-6],
                 ali.encoder.layers[-3]],
         roles=[OUTPUT])(ComputationGraph([mu]).variables)
     output = tensor.concatenate([act.flatten(ndim=2) for act in acts], axis=1)
