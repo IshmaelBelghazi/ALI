@@ -43,13 +43,13 @@ class GaussianMixture(IndexableDataset):
     * densities
 
     """
-    def __init__(self, num_examples, means, variances, priors, **kwargs):
-        seed = kwargs.pop('seed', config.default_seed)
-        # means = kwargs.pop('means')
-        # variances = kwargs.pop('variances')
-        # priors = kwargs.pop('priors')
+    def __init__(self, num_examples, means, variances=None, priors=None,
+                 **kwargs):
+        rng = kwargs.pop('rng', None)
+        if rng is None:
+            seed = kwargs.pop('seed', config.default_seed)
+            rng = np.random.RandomState(seed)
 
-        rng = np.random.RandomState(seed)
         gaussian_mixture = GaussianMixtureDistribution(means=means,
                                                        variances=variances,
                                                        priors=priors,
@@ -81,16 +81,24 @@ class GaussianMixtureDistribution(object):
 
     """
 
-    def __init__(self, means, variances, priors, rng=None, seed=None):
+    def __init__(self, means, variances, priors=None, rng=None, seed=None):
+
+        # Number of components
+        self.ncomponents = len(means)
+        self.dim = means[0].shape[0]
+        # If prior is not specified let prior be flat.
+        self.means = means
+        if priors is None:
+            priors = [1.0/self.ncomponents for _ in range(self.ncomponents)]
+        self.priors = priors
+        # If variances are not specified let variances be identity
+        if variances is None:
+            variances = [np.eye(self.dim) for _ in range(self.ncomponents)]
+        self.variances = variances
 
         assert len(means) == len(variances), "Mean variances mismatch"
         assert len(variances) == len(priors), "prior mismatch"
-        # Number of components
-        self.ncomponents = len(priors)
-        self.priors = priors
-        self.means = means
-        self.variances = variances
-        self.dim = variances[0].shape[0]
+
         if rng is None:
             rng = npr.RandomState(seed=seed)
         self.rng = rng

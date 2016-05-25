@@ -110,7 +110,7 @@ def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
 
 
 def create_gaussian_mixture_data_streams(batch_size, monitoring_batch_size,
-                                         means, variances, priors,
+                                         means, variances=None, priors=None,
                                          rng=None, num_examples=100000):
     train_set = GaussianMixture(num_examples=num_examples,
                                 means=means,
