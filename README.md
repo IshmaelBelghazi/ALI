@@ -8,7 +8,7 @@ From the repo's root directory,
 
 ``` bash
 $ cd papers
-$ latexmk --paper adverarially_learned_inference
+$ latexmk --pdf adverarially_learned_inference
 ```
 
 ## Requirements
