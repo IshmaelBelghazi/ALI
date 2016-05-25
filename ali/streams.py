@@ -112,7 +112,7 @@ def create_gaussian_mixture_data_streams(batch_size, monitoring_batch_size,
                                 variances=variances, priors=priors,
                                 rng=rng, sources=('features',))
 
-    valid_set = GaussianMixture(num_examples=num_examples // 5,
+    valid_set = GaussianMixture(num_examples=num_examples,
                                 means=means, variances=variances,
                                 priors=priors, rng=rng, sources=('features',))
 

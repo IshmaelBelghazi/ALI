@@ -8,13 +8,12 @@ from ali.utils import as_array
 
 
 
-def make_2D_latent_view(train_data, valid_data, samples_data, gradients_funs=None, densities_fun=None):
+def make_2D_latent_view(valid_data, samples_data, gradients_funs=None, densities_funs=None,
+                        save_path=None):
     """
     2D views of the latent and visible spaces
     Parameters
     ----------
-    train_data: dictionary of ndarrays
-        Holds five keys: originals, labels, mu, sigma, encoding, reconstructions
     valid_data: dictionary of numpy arrays
         Holds five keys: originals, labels, mu, sigma, encoding, reconstructions
     samples_data: dictionary of numpy arrays
@@ -32,10 +31,10 @@ def make_2D_latent_view(train_data, valid_data, samples_data, gradients_funs=Non
     # Adding visible subplot
     visible_ax = fig.add_subplot(211)
     # Train data
-    visible_ax.scatter(train_data['originals'][:, 0],
-                       train_data['originals'][:, 1],
-                       c=train_data['labels'],
-                       marker='s', label='Train')
+    visible_ax.scatter(valid_data['originals'][:, 0],
+                       valid_data['originals'][:, 1],
+                       c=valid_data['labels'],
+                       marker='s', label='Valid')
 
     visible_ax.scatter(valid_data['reconstructions'][:, 0],
                        valid_data['reconstructions'][:, 1],
@@ -49,11 +48,6 @@ def make_2D_latent_view(train_data, valid_data, samples_data, gradients_funs=Non
 
     # Adding latent subplot
     latent_ax = fig.add_subplot(212)
-    latent_ax.scatter(train_data['encodings'][:, 0],
-                      train_data['encodings'][:, 1],
-                      c=train_data['labels'],
-                      marker='s', label='Train')
-
     latent_ax.scatter(valid_data['encodings'][:, 0],
                       valid_data['encodings'][:, 1],
                       c=valid_data['labels'],
@@ -63,10 +57,14 @@ def make_2D_latent_view(train_data, valid_data, samples_data, gradients_funs=Non
                       samples_data['samples'][:, 1],
                       marker='o')
 
-    plt.show()
+    plt.tight_layout()
 
+    if save_path is None:
+        plt.show()
+    else:
+        plt.savefig(save_path, transparent=True, bbox_inches='tight')
 
-
+ 
 if __name__ == '__main__':
     means = map(lambda x:  as_array(x), [[0, 0],
                                          [1, 1],
