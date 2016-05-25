@@ -35,13 +35,15 @@ def main(ali_main_loop, save_path):
     x_hat = ali.decoder.apply(z_hat)
 
     # Compiling theano functions
-    get_graph_data = theano.function([], [x, mu, sigma, z_hat, x_hat, z, x_tilde])
+    get_graph_data = theano.function([],
+                                     [x, mu, sigma, z_hat, x_hat, epsilon, x_tilde])
     graph_data = get_graph_data()
     valid_data = dict(zip(['originals', 'mean', 'sigma', 'encodings', 'reconstructions'],
                           graph_data[:5]))
     valid_data['labels'] = labels
     samples_data = dict(zip(['noise', 'samples'],
                             graph_data[5:]))
+
     # Graphing
     make_2D_latent_view(valid_data, samples_data,
                         gradients_funs=None,

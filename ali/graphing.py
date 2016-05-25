@@ -8,7 +8,9 @@ from ali.utils import as_array
 
 
 
-def make_2D_latent_view(valid_data, samples_data, gradients_funs=None, densities_funs=None,
+def make_2D_latent_view(valid_data, samples_data,
+                        gradients_funs=None,
+                        densities_funs=None,
                         save_path=None):
     """
     2D views of the latent and visible spaces
@@ -39,11 +41,11 @@ def make_2D_latent_view(valid_data, samples_data, gradients_funs=None, densities
     visible_ax.scatter(valid_data['reconstructions'][:, 0],
                        valid_data['reconstructions'][:, 1],
                        c=valid_data['labels'],
-                       marker='x', label='Valid')
+                       marker='x', label='Valid', alpha=0.3)
 
-    visible_ax.scatter(samples_data['samples'][:, 0],
-                       samples_data['samples'][:, 1],
-                       marker='o')
+    visible_ax.scatter(samples_data['noise'][:, 0],
+                       samples_data['noise'][:, 1],
+                       marker='o', alpha=0.3)
 
 
     # Adding latent subplot
@@ -55,8 +57,7 @@ def make_2D_latent_view(valid_data, samples_data, gradients_funs=None, densities
 
     latent_ax.scatter(samples_data['samples'][:, 0],
                       samples_data['samples'][:, 1],
-                      marker='o')
-
+                      marker='o', alpha=0.3)
     plt.tight_layout()
 
     if save_path is None:
@@ -64,7 +65,6 @@ def make_2D_latent_view(valid_data, samples_data, gradients_funs=None, densities
     else:
         plt.savefig(save_path, transparent=True, bbox_inches='tight')
 
- 
 if __name__ == '__main__':
     means = map(lambda x:  as_array(x), [[0, 0],
                                          [1, 1],
