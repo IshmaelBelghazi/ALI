@@ -45,6 +45,9 @@ class GaussianMixture(IndexableDataset):
     """
     def __init__(self, num_examples, means, variances, priors, **kwargs):
         seed = kwargs.pop('seed', config.default_seed)
+        means = kwargs.pop('means')
+        variances = kwargs.pop('variances')
+        priors = kwargs.pop('priors')
 
         rng = np.random.RandomState(seed)
         gaussian_mixture = GaussianMixtureDistribution(means=means,
@@ -61,7 +64,7 @@ class GaussianMixture(IndexableDataset):
             ('density', densities)
         ])
 
-        super(GaussianMixture)
+        super(GaussianMixture, self).__init__(data, **kwargs)
 
 
 class GaussianMixtureDistribution(object):
