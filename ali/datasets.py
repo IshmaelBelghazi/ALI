@@ -43,7 +43,7 @@ class GaussianMixture(IndexableDataset):
     * densities
 
     """
-    def __init__(self, num_examples, means, variances=None, priors=None,
+    def __init__(self, num_examples, means=None, variances=None, priors=None,
                  **kwargs):
         rng = kwargs.pop('rng', None)
         if rng is None:
@@ -81,13 +81,19 @@ class GaussianMixtureDistribution(object):
 
     """
 
-    def __init__(self, means, variances, priors=None, rng=None, seed=None):
+    def __init__(self, means=None, variances=None, priors=None, rng=None, seed=None):
 
+        if means is None:
+            means = map(lambda x:  10.0 * as_array(x), [[0, 0],
+                                                        [1, 1],
+                                                        [-1, -1],
+                                                        [1, -1],
+                                                        [-1, 1]])
         # Number of components
         self.ncomponents = len(means)
         self.dim = means[0].shape[0]
-        # If prior is not specified let prior be flat.
         self.means = means
+        # If prior is not specified let prior be flat.
         if priors is None:
             priors = [1.0/self.ncomponents for _ in range(self.ncomponents)]
         self.priors = priors

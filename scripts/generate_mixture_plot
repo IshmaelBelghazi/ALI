@@ -18,8 +18,10 @@ def main(ali_main_loop, save_path):
     ali, = ali_main_loop.model.top_bricks
     random_brick = Random()
     # Getting validation stream
-    _, _, stream = create_gaussian_mixture_data_streams()
-    originals, labels, _ = next(stream.get_epoch_iterator(1000,1000))
+    _, _, stream = create_gaussian_mixture_data_streams(1000, 1000,
+                                                        sources=('features',
+                                                                 'label'))
+    originals, labels = next(stream.get_epoch_iterator())
     x = tensor.as_tensor_variable(originals)
     z = random_brick.theano_rng.normal(
         size=(x.shape[0], ali.decoder.input_dim), dtype=x.dtype)
@@ -46,16 +48,16 @@ def main(ali_main_loop, save_path):
                         densities_funs=None,
                         save_path=save_path)
 
-    if __name__ == '__main__':
-        parser = argparse.argumentparser(description="plot spiral samples.")
-        parser.add_argument("ali_main_loop_path", type=str,
-                            help="path to the pickled ali main loop.")
-        parser.add_argument("--save-path", type=str, default=None,
-                            help="where to save the generated samples.")
-        args = parser.parse_args()
-        with open(args.ali_main_loop_path, 'rb') as ali_src:
-                main(load(ali_src), args.save_path)
-
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="plot spiral samples.")
+    parser.add_argument("ali_main_loop_path", type=str,
+                        default="../experiments/ali_gm.tar",
+                        help="path to the pickled ali main loop.")
+    parser.add_argument("--save-path", type=str, default=None,
+                        help="where to save the generated samples.")
+    args = parser.parse_args()
+    with open(args.ali_main_loop_path, 'rb') as ali_src:
+        main(load(ali_src), args.save_path)
 
 
 

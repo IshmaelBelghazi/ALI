@@ -49,11 +49,12 @@ NUM_EPOCHS = 1000
 MONITORING_BATCH_SIZE = 500
 SEED = None
 # Dataset
-MEANS = map(lambda x:  10.0 * as_array(x), [[0, 0],
-                                            [1, 1],
-                                            [-1, -1],
-                                            [1, -1],
-                                            [-1, 1]])
+# MEANS = map(lambda x:  10.0 * as_array(x), [[0, 0],
+#                                             [1, 1],
+#                                             [-1, -1],
+#                                             [1, -1],
+#                                             [-1, 1]])
+MEANS = None # Default Means. Commented above.
 VARIANCES = None  # Identity covariances.
 PRIORS = None  # Equally Likely
 
@@ -269,8 +270,8 @@ def create_main_loop(save_path):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    parser = argparse.ArgumentParser(description='Train ALI on Spiral')
-    parser.add_argument("--save-path", type=str, default='ali_spiral.tar',
+    parser = argparse.ArgumentParser(description='Train ALI on a gaussian mixture distribution')
+    parser.add_argument("--save-path", type=str, default='ali_gm.tar',
                         help="main loop save path")
     args = parser.parse_args()
     main_loop = create_main_loop(args.save_path)

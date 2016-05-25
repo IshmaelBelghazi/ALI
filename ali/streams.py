@@ -88,7 +88,7 @@ def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
     train_set = Spiral(num_examples=num_examples, classes=classes,
                        cycles=cycles, noise=noise, sources=('features',))
 
-    valid_set = Spiral(num_examples=num_examples // 5, classes=classes,
+    valid_set = Spiral(num_examples=num_examples, classes=classes,
                        cycles=cycles, noise=noise, sources=('features',))
 
     main_loop_stream = DataStream.default_stream(
@@ -106,15 +106,16 @@ def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
 
 
 def create_gaussian_mixture_data_streams(batch_size, monitoring_batch_size,
-                                         means, variances=None, priors=None,
-                                         rng=None, num_examples=100000):
+                                         means=None, variances=None, priors=None,
+                                         rng=None, num_examples=100000,
+                                         sources=('features', )):
     train_set = GaussianMixture(num_examples=num_examples, means=means,
                                 variances=variances, priors=priors,
-                                rng=rng, sources=('features',))
+                                rng=rng, sources=sources)
 
     valid_set = GaussianMixture(num_examples=num_examples,
                                 means=means, variances=variances,
-                                priors=priors, rng=rng, sources=('features',))
+                                priors=priors, rng=rng, sources=sources)
 
     main_loop_stream = DataStream(
         train_set,
