@@ -1,11 +1,11 @@
 """Additional dataset classes."""
 from __future__ import (division, print_function, )
 from collections import OrderedDict
+from scipy.stats import multivariate_normal
 
 import numpy as np
 import numpy.random as npr
 
-import theano
 from fuel import config
 from fuel.datasets import H5PYDataset, IndexableDataset
 from fuel.transformers.defaults import uint8_pixels_to_floatX
@@ -37,17 +37,16 @@ class TinyILSVRC2012(H5PYDataset):
 class GaussianMixture(IndexableDataset):
     """ Toy dataset containing points sampled from a gaussian mixture distribution.
 
-    The dataset contains 3 sources:
+    The dataset contains 2 sources:
     * features
     * label
-    * density
 
     """
     def __init__(self, num_examples, means, variances, priors, **kwargs):
         seed = kwargs.pop('seed', config.default_seed)
-        means = kwargs.pop('means')
-        variances = kwargs.pop('variances')
-        priors = kwargs.pop('priors')
+        # means = kwargs.pop('means')
+        # variances = kwargs.pop('variances')
+        # priors = kwargs.pop('priors')
 
         rng = np.random.RandomState(seed)
         gaussian_mixture = GaussianMixtureDistribution(means=means,
@@ -56,7 +55,7 @@ class GaussianMixture(IndexableDataset):
                                                        rng=rng)
 
         features, labels = gaussian_mixture.sample(nsamples=num_examples)
-        densities = gaussian_mixture.pdf(features)
+        densities = gaussian_mixture.pdf(x=features)
 
         data = OrderedDict([
             ('features', features),
@@ -117,10 +116,7 @@ class GaussianMixtureDistribution(object):
         return mean + np.linalg.cholesky(variance).dot(epsilons)
 
     def _gaussian_pdf(self, x, mean, variance):
-        constant = (2 * np.pi)**(self.dim//2) * np.sqrt(np.linalg.det(variance))
-        precision = np.linalg.pinv(variance)
-        x_mean = x - mean
-        return 1/constant * np.exp(0.5 * np.sum(x_mean.dot(precision) * x_mean, axis=-1))
+        return multivariate_normal.pdf(x, mean=mean, cov=variance)
 
     def pdf(self, x):
         "Evaluates the the probability density function at the given point x"
@@ -142,10 +138,5 @@ if __name__ == '__main__':
     gaussian_mixture = GaussianMixtureDistribution(means=means,
                                                    variances=variances,
                                                    priors=priors)
-    samples, labels = gaussian_mixture.sample(1000)
-    import pylab as pb
-    pb.figure()
-    pb.scatter(x=samples[:, 0], y=samples[:, 1])
-    pb.show()
-    pb.close()
-    gmdset = GaussianMixture(1000, means, variances, priors)
+    gmdset = GaussianMixture(1000, means, variances, priors, sources=('features', ))
+
