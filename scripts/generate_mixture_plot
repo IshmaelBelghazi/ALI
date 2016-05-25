@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+import argparse
+
+import theano
+from theano import tensor
+from blocks.bricks.interfaces import Random
+from blocks.serialization import load
+import matplotlib.pyplot as plt
+
+from ali.streams import create_gaussian_mixture_data_streams
+from ali.graphing import make_2D_latent_view
+
+plt.rc('font', **{'family': 'serif', 'serif': 'Computer Modern Roman'})
+plt.rc('text', usetex=True)
+
+
+def main(ali_main_loop, save_path):
+    ali, = ali_main_loop.model.top_bricks
+    random_brick = Random()
+    # Getting validation stream
+    _, _, stream = create_gaussian_mixture_data_streams()
+    originals, labels, _ = next(stream.get_epoch_iterator(1000,1000))
+    x = tensor.as_tensor_variable(originals)
+    z = random_brick.theano_rng.normal(
+        size=(x.shape[0], ali.decoder.input_dim), dtype=x.dtype)
+    params = ali.encoder.apply(x)
+    latent_dim = ali.decoder.input_dim
+    mu, log_sigma = params[:, :latent_dim], params[:, latent_dim:]
+    sigma = tensor.exp(log_sigma)
+    epsilon = random_brick.theano_rng.normal(size=mu.shape, dtype=mu.dtype)
+    z_hat = mu + sigma * epsilon
+    x_tilde = ali.decoder.apply(z)
+    x_hat = ali.decoder.apply(z_hat)
+
+    # Compiling theano functions
+    get_graph_data = theano.function([], [x, mu, sigma, z_hat, x_hat, z, x_tilde])
+    graph_data = get_graph_data()
+    valid_data = dict(zip(['originals', 'mean', 'sigma', 'encodings', 'reconstructions'],
+                          graph_data[:5]))
+    valid_data['labels'] = labels
+    samples_data = dict(zip(['noise', 'samples'],
+                            graph_data[5:]))
+    # Graphing
+    make_2D_latent_view(valid_data, samples_data,
+                        gradients_funs=None,
+                        densities_funs=None,
+                        save_path=save_path)
+
+    if __name__ == '__main__':
+        parser = argparse.argumentparser(description="plot spiral samples.")
+        parser.add_argument("ali_main_loop_path", type=str,
+                            help="path to the pickled ali main loop.")
+        parser.add_argument("--save-path", type=str, default=None,
+                            help="where to save the generated samples.")
+        args = parser.parse_args()
+        with open(args.ali_main_loop_path, 'rb') as ali_src:
+                main(load(ali_src), args.save_path)
+
+
+
+
+
+
+
