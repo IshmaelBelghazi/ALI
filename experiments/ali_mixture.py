@@ -3,7 +3,7 @@ from theano import tensor
 from blocks.algorithms import Adam
 from blocks.bricks import (MLP, Rectifier, Logistic, Identity, LinearMaxout,
                            Linear, Tanh, LeakyRectifier, )
-from blocks.bricks.bn import (BatchNormalization, BatchNormalizedMLP, )
+from blocks.bricks.bn import (BatchNormalization, )
 from blocks.bricks.sequences import Sequence
 from blocks.extensions import FinishAfter, Timing, Printing, ProgressBar
 from blocks.extensions.monitoring import DataStreamMonitoring
