@@ -29,8 +29,7 @@ GAUSSIAN_INIT = IsotropicGaussian(std=0.02)
 ZERO_INIT = Constant(0.0)
 MAXOUT_PIECES = 2
 WITH_DROPOUT = True
-NUM_EPOCHS = 5
-INCREMENTS = 1000 // NUM_EPOCHS
+NUM_EPOCHS = 1000
 BATCH_SIZE = 100
 GEN_HIDDEN = 1000
 GEN_ACTIVATION = Rectifier #Rectifier #partial(LeakyRectifier, leak=0.2)
