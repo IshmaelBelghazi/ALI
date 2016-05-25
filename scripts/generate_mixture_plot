@@ -13,9 +13,25 @@ from ali.graphing import make_2D_latent_view
 plt.rc('font', **{'family': 'serif', 'serif': 'Computer Modern Roman'})
 plt.rc('text', usetex=True)
 
+def get_compiled_functions(main_loop):
+    ali, = main_loop.model.top_bricks
+    x = tensor.matrix('x')
+    z_hat = tensor.matrix('z_hat')
+    x_tilde = tensor.matrix('x_tilde')
+    z = tensor.matrix('z')
+
+    # Getting computations graphs
+    predictions = ali.get_predictions(x, z_hat, x_tilde, z)
+    disc_loss, gen_loss = ali.compute_losses(x, z)
+
+    disc_loss_grads = tensor.grad(disc_loss, z)
+    gen_loss_grads = tensor.grad(gen_loss, z)
+
+    pass
 
 def main(ali_main_loop, save_path):
     ali, = ali_main_loop.model.top_bricks
+    current_epoch = ali_main_loop.status['epochs_done']
     random_brick = Random()
     # Getting validation stream
     _, _, stream = create_gaussian_mixture_data_streams(1000, 1000,
@@ -34,11 +50,14 @@ def main(ali_main_loop, save_path):
     x_tilde = ali.decoder.apply(z)
     x_hat = ali.decoder.apply(z_hat)
 
+    # Getting predictions
+
     # Compiling theano functions
-    get_graph_data = theano.function([],
-                                     [x, mu, sigma, z_hat, x_hat, epsilon, x_tilde])
+    get_graph_data = theano.function([], [x, mu, sigma, z_hat, x_hat,
+                                          epsilon, x_tilde])
     graph_data = get_graph_data()
-    valid_data = dict(zip(['originals', 'mean', 'sigma', 'encodings', 'reconstructions'],
+    valid_data = dict(zip(['originals',
+                           'mean', 'sigma', 'encodings', 'reconstructions'],
                           graph_data[:5]))
     valid_data['labels'] = labels
     samples_data = dict(zip(['noise', 'samples'],
@@ -48,6 +67,7 @@ def main(ali_main_loop, save_path):
     make_2D_latent_view(valid_data, samples_data,
                         gradients_funs=None,
                         densities_funs=None,
+                        epoch=current_epoch,
                         save_path=save_path)
 
 if __name__ == '__main__':
