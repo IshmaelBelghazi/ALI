@@ -37,9 +37,10 @@ class TinyILSVRC2012(H5PYDataset):
 class GaussianMixture(IndexableDataset):
     """ Toy dataset containing points sampled from a gaussian mixture distribution.
 
-    The dataset contains 2 sources:
+    The dataset contains 3 sources:
     * features
     * label
+    * densities
 
     """
     def __init__(self, num_examples, means, variances, priors, **kwargs):
