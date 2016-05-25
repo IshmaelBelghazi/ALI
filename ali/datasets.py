@@ -1,7 +1,17 @@
 """Additional dataset classes."""
-from fuel.datasets import H5PYDataset
+from __future__ import (division, print_function, )
+from collections import OrderedDict
+
+import numpy as np
+import numpy.random as npr
+
+import theano
+from fuel import config
+from fuel.datasets import H5PYDataset, IndexableDataset
 from fuel.transformers.defaults import uint8_pixels_to_floatX
 from fuel.utils import find_in_data_path
+
+from ali.utils import as_array
 
 
 class TinyILSVRC2012(H5PYDataset):
@@ -22,3 +32,117 @@ class TinyILSVRC2012(H5PYDataset):
         super(TinyILSVRC2012, self).__init__(
             file_or_path=find_in_data_path(self.filename),
             which_sets=which_sets, **kwargs)
+
+
+class GaussianMixture(IndexableDataset):
+    """ Toy dataset containing points sampled from a gaussian mixture distribution.
+
+    The dataset contains 3 sources:
+    * features
+    * label
+    * density
+
+    """
+    def __init__(self, num_examples, means, variances, priors, **kwargs):
+        seed = kwargs.pop('seed', config.default_seed)
+
+        rng = np.random.RandomState(seed)
+        gaussian_mixture = GaussianMixtureDistribution(means=means,
+                                                       variances=variances,
+                                                       priors=priors,
+                                                       rng=rng)
+
+        features, labels = gaussian_mixture.sample(nsamples=num_examples)
+        densities = gaussian_mixture.pdf(features)
+
+        data = OrderedDict([
+            ('features', features),
+            ('label', labels),
+            ('density', densities)
+        ])
+
+        super(GaussianMixture)
+
+
+class GaussianMixtureDistribution(object):
+    """ Gaussian Mixture Distribution
+
+    Parameters
+    ----------
+    means : tuple of ndarray.
+       Specifies the means for the gaussian components.
+    variances : tuple of ndarray.
+       Specifies the variances for the gaussian components.
+    priors : tuple of ndarray
+       Specifies the prior distribution of the components.
+
+    """
+
+    def __init__(self, means, variances, priors, rng=None, seed=None):
+
+        assert len(means) == len(variances), "Mean variances mismatch"
+        assert len(variances) == len(priors), "prior mismatch"
+        # Number of components
+        self.ncomponents = len(priors)
+        self.priors = priors
+        self.means = means
+        self.variances = variances
+        self.dim = variances[0].shape[0]
+        if rng is None:
+            rng = npr.RandomState(seed=seed)
+        self.rng = rng
+
+    def _sample_prior(self, nsamples):
+        return self.rng.choice(a=self.ncomponents,
+                               size=(nsamples, ),
+                               replace=True,
+                               p=self.priors)
+
+    def sample(self, nsamples):
+        # Sampling priors
+        samples = []
+        fathers = self._sample_prior(nsamples=nsamples).tolist()
+        for father in fathers:
+            samples.append(self._sample_gaussian(self.means[father],
+                                                 self.variances[father]))
+        return as_array(samples), as_array(fathers)
+
+    def _sample_gaussian(self, mean, variance):
+        # sampling unit gaussians
+        epsilons = self.rng.normal(size=(self.dim, ))
+
+        return mean + np.linalg.cholesky(variance).dot(epsilons)
+
+    def _gaussian_pdf(self, x, mean, variance):
+        constant = (2 * np.pi)**(self.dim//2) * np.sqrt(np.linalg.det(variance))
+        precision = np.linalg.pinv(variance)
+        x_mean = x - mean
+        return 1/constant * np.exp(0.5 * np.sum(x_mean.dot(precision) * x_mean, axis=-1))
+
+    def pdf(self, x):
+        "Evaluates the the probability density function at the given point x"
+        pdfs = map(lambda m, v, p: p * self._gaussian_pdf(x, m, v),
+                   self.means, self.variances, self.priors)
+        return reduce(lambda x, y: x + y, pdfs, 0.0)
+
+
+if __name__ == '__main__':
+    means = map(lambda x:  as_array(x), [[0, 0],
+                                         [1, 1],
+                                         [-1, -1],
+                                         [1, -1],
+                                         [-1, 1]])
+    std = 0.01
+    variances = [np.eye(2) * std for _ in means]
+    priors = [1.0/len(means) for _ in means]
+
+    gaussian_mixture = GaussianMixtureDistribution(means=means,
+                                                   variances=variances,
+                                                   priors=priors)
+    samples, labels = gaussian_mixture.sample(1000)
+    import pylab as pb
+    pb.figure()
+    pb.scatter(x=samples[:, 0], y=samples[:, 1])
+    pb.show()
+    pb.close()
+    gmdset = GaussianMixture(1000, means, variances, priors)
