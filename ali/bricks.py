@@ -274,8 +274,8 @@ class FullyConnectedALI(FCALIBase):
     def _get_data_sample_preds(self, x, z_hat, x_tilde, z):
         return self.discriminator.apply(
             tensor.concatenate(
-                [tensor.concatenate([x, x_tilde], axis=1),
-                 tensor.concatenate([z_hat, z], axis=1)], axis=0))
+                [tensor.concatenate([x, x_tilde], axis=0),
+                 tensor.concatenate([z_hat, z], axis=0)], axis=1))
 
 
 class GAN(Initializable, Random):
