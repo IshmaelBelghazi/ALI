@@ -2,7 +2,7 @@ import argparse
 
 import numpy
 from fuel.datasets import H5PYDataset
-from fuel.schemes import ShuffledScheme
+from fuel.schemes import ShuffledScheme, ShuffledExampleScheme
 from fuel.streams import DataStream
 from sklearn.svm import LinearSVC
 
@@ -13,8 +13,25 @@ def main(dataset_path, use_c, log_min, log_max, num_steps):
         subset=slice(0, 63257), load_in_memory=True)
     train_stream = DataStream.default_stream(
         train_set,
-        iteration_scheme=ShuffledScheme(train_set.num_examples, 1000))
-    train_features, train_targets = next(train_stream.get_epoch_iterator())
+        iteration_scheme=ShuffledExampleScheme(train_set.num_examples))
+
+    def get_class_balanced_batch(iterator):
+        train_features = [[] for _ in range(10)]
+        train_targets = [[] for _ in range(10)]
+        batch_size = 0
+        while batch_size < 1000:
+            f, t = next(iterator)
+            t = t[0]
+            if len(train_features[t]) < 100:
+                train_features[t].append(f)
+                train_targets[t].append(t)
+                batch_size += 1
+        train_features = numpy.vstack(sum(train_features, []))
+        train_targets = numpy.vstack(sum(train_targets, []))
+        return train_features, train_targets
+
+    train_features, train_targets = get_class_balanced_batch(
+        train_stream.get_epoch_iterator())
 
     valid_set = H5PYDataset(
         dataset_path, which_sets=('train',), sources=('features', 'targets'),
@@ -47,7 +64,8 @@ def main(dataset_path, use_c, log_min, log_max, num_steps):
 
     error_rates = []
     for _ in range(10):
-        train_features, train_targets = next(train_stream.get_epoch_iterator())
+        train_features, train_targets = get_class_balanced_batch(
+            train_stream.get_epoch_iterator())
         svm = LinearSVC(C=best_C)
         svm.fit(train_features, train_targets.ravel())
         error_rates.append(1 - numpy.mean(
@@ -60,7 +78,8 @@ def main(dataset_path, use_c, log_min, log_max, num_steps):
 
     error_rates = []
     for _ in range(100):
-        train_features, train_targets = next(train_stream.get_epoch_iterator())
+        train_features, train_targets = get_class_balanced_batch(
+            train_stream.get_epoch_iterator())
         svm = LinearSVC(C=best_C)
         svm.fit(train_features, train_targets.ravel())
         s = 1000 * numpy.sum(
