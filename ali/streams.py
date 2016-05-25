@@ -108,15 +108,20 @@ def create_spiral_data_streams(batch_size, monitoring_batch_size, rng=None,
 
     return main_loop_stream, train_monitor_stream, valid_monitor_stream
 
-def create_gaussian_mixture_data_streams(batch_size, monitoring_batch_size, rng=None,
-                                         num_examples=100000,
-                                         means, variances, priors):
+
+def create_gaussian_mixture_data_streams(batch_size, monitoring_batch_size,
+                                         means, variances, priors,
+                                         rng=None, num_examples=100000):
     train_set = GaussianMixture(num_examples=num_examples,
-                                means=means, variances=variances, priors=priors,
+                                means=means,
+                                variances=variances,
+                                priors=priors,
                                 rng=rng, sources=('features', ))
 
     valid_set = GaussianMixture(num_examples=num_examples//5,
-                                means=means, variances=variances, priors=priors,
+                                means=means,
+                                variances=variances,
+                                priors=priors,
                                 rng=rng, sources=('features', ))
 
     main_loop_stream = DataStream(
