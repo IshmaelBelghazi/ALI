@@ -49,11 +49,14 @@ class GaussianMixture(IndexableDataset):
         if rng is None:
             seed = kwargs.pop('seed', config.default_seed)
             rng = np.random.RandomState(seed)
-
+    
         gaussian_mixture = GaussianMixtureDistribution(means=means,
                                                        variances=variances,
                                                        priors=priors,
                                                        rng=rng)
+        self.means = gaussian_mixture.means
+        self.variances = gaussian_mixture.variances
+        self.priors = gaussian_mixture.priors
 
         features, labels = gaussian_mixture.sample(nsamples=num_examples)
         densities = gaussian_mixture.pdf(x=features)

@@ -35,7 +35,7 @@ def make_2D_latent_view(valid_data,
     # Getting Cmap
     cmap = plt.cm.get_cmap('Spectral', 5)
     # Adding visible subplot
-    visible_ax = fig.add_subplot(211)
+    visible_ax = fig.add_subplot(211, aspect='equal')
     # Train data
     s1 = visible_ax.scatter(valid_data['originals'][:, 0],
                             valid_data['originals'][:, 1],
@@ -58,7 +58,7 @@ def make_2D_latent_view(valid_data,
     visible_ax.get_legend()
 
     # Adding latent subplot
-    latent_ax = fig.add_subplot(212)
+    latent_ax = fig.add_subplot(212, aspect='equal')
     latent_ax.scatter(valid_data['encodings'][:, 0],
                       valid_data['encodings'][:, 1],
                       c=valid_data['labels'],
