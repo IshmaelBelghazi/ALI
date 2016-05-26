@@ -22,12 +22,21 @@ def get_compiled_functions(main_loop):
 
     # Getting computations graphs
     predictions = ali.get_predictions(x, z_hat, x_tilde, z)
-    disc_loss, gen_loss = ali.compute_losses(x, z)
+    predictions_fun = theano.function([x, z_hat, x_tilde, z],
+                                      predictions)
 
+    disc_loss, gen_loss = ali.compute_losses(x, z)
     disc_loss_grads = tensor.grad(disc_loss, z)
     gen_loss_grads = tensor.grad(gen_loss, z)
 
-    pass
+    disc_grad_fun = theano.function([x, z], disc_loss_grads)
+    gen_grad_fun = theano.function([x, z], gen_loss_grads)
+
+    return ({'discriminator': disc_grad_fun, 'generator': gen_grad_fun},
+            {'predictions': predictions_fun})
+
+
+
 
 def main(ali_main_loop, save_path):
     ali, = ali_main_loop.model.top_bricks
@@ -50,8 +59,6 @@ def main(ali_main_loop, save_path):
     x_tilde = ali.decoder.apply(z)
     x_hat = ali.decoder.apply(z_hat)
 
-    # Getting predictions
-
     # Compiling theano functions
     get_graph_data = theano.function([], [x, mu, sigma, z_hat, x_hat,
                                           epsilon, x_tilde])
@@ -63,9 +70,12 @@ def main(ali_main_loop, save_path):
     samples_data = dict(zip(['noise', 'samples'],
                             graph_data[5:]))
 
+    # Getting gradients funs
+    gradients_funs, prediction_fun = get_compiled_functions(ali_main_loop)
+
     # Graphing
     make_2D_latent_view(valid_data, samples_data,
-                        gradients_funs=None,
+                        gradients_funs=gradients_funs,
                         densities_funs=None,
                         epoch=current_epoch,
                         save_path=save_path)

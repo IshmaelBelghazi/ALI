@@ -7,7 +7,6 @@ from ali.datasets import GaussianMixtureDistribution
 from ali.utils import as_array
 
 
-
 def make_2D_latent_view(valid_data,
                         samples_data,
                         gradients_funs=None,
@@ -35,46 +34,63 @@ def make_2D_latent_view(valid_data,
     # Getting Cmap
     cmap = plt.cm.get_cmap('Spectral', 5)
     # Adding visible subplot
-    visible_ax = fig.add_subplot(211, aspect='equal')
+    recons_visible_ax = fig.add_subplot(221, aspect='equal')
     # Train data
-    s1 = visible_ax.scatter(valid_data['originals'][:, 0],
-                            valid_data['originals'][:, 1],
-                            c=valid_data['labels'],
-                            marker='s', label='originals',
-                            alpha=0.3, cmap=cmap)
-    fig.colorbar(s1)
+    recons_visible_ax.scatter(valid_data['originals'][:, 0],
+                              valid_data['originals'][:, 1],
+                              c=valid_data['labels'],
+                              marker='s', label='originals',
+                              alpha=0.3, cmap=cmap)
 
-    visible_ax.scatter(valid_data['reconstructions'][:, 0],
-                       valid_data['reconstructions'][:, 1],
-                       c=valid_data['labels'],
-                       marker='D', label='reconstructions', alpha=0.3, cmap=cmap)
+    recons_visible_ax.scatter(valid_data['reconstructions'][:, 0],
+                              valid_data['reconstructions'][:, 1],
+                              c=valid_data['labels'],
+                              marker='D', label='reconstructions',
+                              alpha=0.3,
+                              cmap=cmap)
 
-    visible_ax.scatter(samples_data['samples'][:, 0],
-                       samples_data['samples'][:, 1],
-                       marker='o', alpha=0.3, label='samples')
-    visible_ax.set_title('Visible space. Epoch {}'.format(str(epoch)))
-    plt.legend(loc="upper left", bbox_to_anchor=[0, 1],
-               shadow=True, title="Legend", fancybox=True)
-    visible_ax.get_legend()
+    recons_visible_ax.set_title('Visible space. Epoch {}'.format(str(epoch)))
+    samples_visible_ax = fig.add_subplot(222, aspect='equal',
+                                         sharex=recons_visible_ax,
+                                         sharey=recons_visible_ax)
+
+    samples_visible_ax.scatter(valid_data['originals'][:, 0],
+                               valid_data['originals'][:, 1],
+                               c=valid_data['labels'],
+                               marker='s', label='originals',
+                               alpha=0.3,
+                               cmap=cmap)
+
+    samples_visible_ax.scatter(samples_data['samples'][:, 0],
+                               samples_data['samples'][:, 1],
+                               marker='o', alpha=0.3, label='samples')
+    samples_visible_ax.set_title('Visible space. Epoch {}'.format(str(epoch)))
+
+    # plt.legend(loc="upper left", bbox_to_anchor=[0, 1],
+    #            shadow=True, title="Legend", fancybox=True)
+    # visible_ax.get_legend()
 
     # Adding latent subplot
-    latent_ax = fig.add_subplot(212, aspect='equal')
-    latent_ax.scatter(valid_data['encodings'][:, 0],
-                      valid_data['encodings'][:, 1],
-                      c=valid_data['labels'],
-                      marker='D', label='encodings',
-                      alpha=0.3, cmap=cmap)
+    recons_latent_ax = fig.add_subplot(223, aspect='equal')
+    recons_latent_ax.scatter(valid_data['encodings'][:, 0],
+                             valid_data['encodings'][:, 1],
+                             c=valid_data['labels'],
+                             marker='s', label='encodings',
+                             alpha=0.3, cmap=cmap)
+    recons_latent_ax.set_title('Latent space. Epoch {}'.format(str(epoch)))
 
-    latent_ax.scatter(samples_data['noise'][:, 0],
-                      samples_data['noise'][:, 1],
-                      marker='o', label='noise',
-                      alpha=0.3)
+    samples_latent_ax = fig.add_subplot(224, aspect='equal',
+                                        sharex=recons_latent_ax,
+                                        sharey=recons_latent_ax)
+    samples_latent_ax.scatter(samples_data['noise'][:, 0],
+                              samples_data['noise'][:, 1],
+                              marker='o', label='noise',
+                              alpha=0.3)
+    samples_latent_ax.set_title('Latent space. Epoch {}'.format(str(epoch)))
 
-
-    latent_ax.set_title('Latent space. Epoch {}'.format(str(epoch)))
-    plt.legend(loc="upper left", bbox_to_anchor=[0, 1],
-               shadow=True, title="Legend", fancybox=True)
-    latent_ax.get_legend()
+    # plt.legend(loc="upper left", bbox_to_anchor=[0, 1],
+    #            shadow=True, title="Legend", fancybox=True)
+    # latent_ax.get_legend()
     plt.tight_layout()
 
     if save_path is None:
