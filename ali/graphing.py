@@ -1,7 +1,8 @@
 """ ALI related graphs """
-
+from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy
 
 from ali.datasets import GaussianMixtureDistribution
 from ali.utils import as_array
@@ -45,7 +46,7 @@ def make_2D_latent_view(valid_data,
     recons_visible_ax.scatter(valid_data['reconstructions'][:, 0],
                               valid_data['reconstructions'][:, 1],
                               c=valid_data['labels'],
-                              marker='D', label='reconstructions',
+                              marker='x', label='reconstructions',
                               alpha=0.3,
                               cmap=cmap)
 
@@ -75,7 +76,7 @@ def make_2D_latent_view(valid_data,
     recons_latent_ax.scatter(valid_data['encodings'][:, 0],
                              valid_data['encodings'][:, 1],
                              c=valid_data['labels'],
-                             marker='s', label='encodings',
+                             marker='x', label='encodings',
                              alpha=0.3, cmap=cmap)
     recons_latent_ax.set_title('Latent space. Epoch {}'.format(str(epoch)))
 
@@ -97,6 +98,22 @@ def make_2D_latent_view(valid_data,
         plt.show()
     else:
         plt.savefig(save_path, transparent=True, bbox_inches='tight')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     means = map(lambda x:  as_array(x), [[0, 0],
@@ -125,7 +142,7 @@ if __name__ == '__main__':
     samples_data = {'noise': noise,
                     'samples': samples}
 
-    make_2D_latent_view(train_data, valid_data, samples_data)
-
+    #make_2D_latent_view(train_data, valid_data, samples_data)
+    make_assignement_plots(valid_data)
 
 

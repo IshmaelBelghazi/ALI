@@ -213,6 +213,15 @@ class FCALIBase(Initializable, Random):
         return data_preds, sample_preds
 
     @application(inputs=['x', 'z'],
+                 outputs=['accuracy'])
+    def get_accuracies(self, x, z, application_call):
+
+        preds = self.discriminator.apply(tensor.concatenate([x, z], axis=1))
+        accuracies = tensor.nnet.sigmoid(preds)
+
+        return accuracies
+
+    @application(inputs=['x', 'z'],
                  outputs=['discriminator_loss', 'generator_loss'])
     def compute_losses(self, x, z, application_call):
         z_hat = self.sample_z_hat(x)
