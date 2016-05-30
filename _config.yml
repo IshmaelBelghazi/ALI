@@ -1,7 +1,7 @@
 # Setup
 title:        Adversarially Learned Inference
 tagline:      Website for the Adversarially Learned Inference paper
-baseurl:      ""
+baseurl:      "/ALI"
 
 # About/contact
 author:
