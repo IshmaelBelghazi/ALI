@@ -43,7 +43,7 @@ trained to make accurate predictions, and the generator is trained to output
 samples that fool the discriminator into thinking they came from the data
 distribution.
 
-![Generative adversarial networks]({{ site.url }}/assets/gan_simple.svg)
+![Generative adversarial networks]({{ site.baseurl }}/assets/gan_simple.svg)
 
 To better understand GANs, it is necessary to describe it using a probabilistic
 framework. Two marginal distributions are defined:
@@ -54,7 +54,7 @@ framework. Two marginal distributions are defined:
 
 This translates to the following diagram:
 
-![Generative adversarial networks]({{ site.url }}/assets/gan_probabilistic.svg)
+![Generative adversarial networks]({{ site.baseurl }}/assets/gan_probabilistic.svg)
 
 The following value function is maximized by the discriminator and minimized by
 the generator:
@@ -92,7 +92,7 @@ predict whether they come from the encoder joint or the decoder joint. Like
 before, the generator is trained to fool the discriminator, but this time it
 can also learn \\(q(\\mathbf{z} \\mid \\mathbf{x})\\).
 
-![Adversarially learned inference]({{ site.url }}/assets/ali_probabilistic.svg)
+![Adversarially learned inference]({{ site.baseurl }}/assets/ali_probabilistic.svg)
 
 In analogy to GAN, the adversarial game played between the discriminator and the
 generator has the side effect that the two _joint_ distributions eventually match,
@@ -113,7 +113,7 @@ The [CIFAR10](https://www.cs.toronto.edu/~kriz/cifar.html) dataset contains
 
 ### Samples
 
-![CIFAR10 samples]({{ site.url }}/assets/cifar10_samples.png)
+![CIFAR10 samples]({{ site.baseurl }}/assets/cifar10_samples.png)
 
 ### Reconstructions
 
@@ -121,7 +121,7 @@ Odd columns are validation set examples, even columns are their corresponding
 reconstructions (e.g., first column contains validation set examples, second
 column contains their corresponding reconstruction).
 
-![CIFAR10 reconstructions]({{ site.url }}/assets/cifar10_reconstructions.png)
+![CIFAR10 reconstructions]({{ site.baseurl }}/assets/cifar10_reconstructions.png)
 
 <a name="svhn"></a>
 
@@ -133,7 +133,7 @@ obtained from house numbers in Google Street View images. It contains over
 
 ### Samples
 
-![SVHN samples]({{ site.url }}/assets/svhn_samples.png)
+![SVHN samples]({{ site.baseurl }}/assets/svhn_samples.png)
 
 ### Reconstructions
 
@@ -141,7 +141,7 @@ Odd columns are validation set examples, even columns are their corresponding
 reconstructions (e.g., first column contains validation set examples, second
 column contains their corresponding reconstruction).
 
-![SVHN reconstructions]({{ site.url }}/assets/svhn_reconstructions.png)
+![SVHN reconstructions]({{ site.baseurl }}/assets/svhn_reconstructions.png)
 
 <a name="celeba"></a>
 
@@ -153,7 +153,7 @@ examples.
 
 ### Samples
 
-![CelebA samples]({{ site.url }}/assets/celeba_samples.png)
+![CelebA samples]({{ site.baseurl }}/assets/celeba_samples.png)
 
 ### Reconstructions
 
@@ -161,4 +161,4 @@ Odd columns are validation set examples, even columns are their corresponding
 reconstructions (e.g., first column contains validation set examples, second
 column contains their corresponding reconstruction).
 
-![CelebA reconstructions]({{ site.url }}/assets/celeba_reconstructions.png)
+![CelebA reconstructions]({{ site.baseurl }}/assets/celeba_reconstructions.png)
