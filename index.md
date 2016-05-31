@@ -35,13 +35,18 @@ objective function involves **no** explicit reconstruction loop.
 ## Quick introduction to GANs
 
 GAN pits two neural networks against each other: a **generator** network
-\\(G(\\mathbf{z})\\), which maps a random source of noise to synthetic samples,
-and a **discriminator** network \\(D(\\mathbf{x})\\), which takes either a data
-sample or a sample from the generator network and predicts where the sample
-comes from (data distribution or model distribution). The discriminator is
-trained to make accurate predictions, and the generator is trained to output
-samples that fool the discriminator into thinking they came from the data
-distribution.
+\\(G(\\mathbf{z})\\), and a **discriminator** network \\(D(\\mathbf{x})\\).
+
+The generator tries to mimic examples from a training dataset, which is sampled
+from the true data distribution \\(q(\\mathbf{x})\\). It does so by transforming
+a random source of noise received as input into a synthetic sample.
+
+The discriminator receives a sample, but it is not told where the sample comes
+from. Its job is to predict whether it is a data sample or a synthetic sample.
+
+The discriminator is trained to make accurate predictions, and the generator is
+trained to output samples that fool the discriminator into thinking they came
+from the data distribution.
 
 ![Generative adversarial networks]({{ site.baseurl }}/assets/gan_simple.svg)
 
@@ -52,12 +57,16 @@ framework. Two marginal distributions are defined:
 * the _model_ marginal \\(p(\\mathbf{x}) =
   \\int p(\\mathbf{z}) p(\\mathbf{x} \\mid \\mathbf{z}) d\\mathbf{z}\\).
 
-This translates to the following diagram:
+The generator operates by sampling \\(\\mathbf{z} \\sim p(\\mathbf{z})\\) and
+then sampling \\(\\mathbf{x} \\sim p(\\mathbf{x} \\mid \\mathbf{z})\\).
+The discriminator receives either the generator sample or
+\\(\\mathbf{x} \\sim q(\\mathbf{x})\\) and outputs the probability that its
+input was sampled from \\(q(\\mathbf{x})\\).
 
 ![Generative adversarial networks]({{ site.baseurl }}/assets/gan_probabilistic.svg)
 
-The following value function is maximized by the discriminator and minimized by
-the generator:
+The adversarial game played between the discriminator and the generator is
+formalized by the following value function:
 
 $$
 \begin{split}
@@ -70,9 +79,23 @@ $$
 \end{split}
 $$
 
-The adversarial game played between the discriminator and the generator has the
-side effect that the two marginal distributions eventually match, i.e.,
-\\(p(\\mathbf{x}) \\sim q(\\mathbf{x})\\).
+On one hand, the discriminator is trained to maximize the probability of correctly
+classifying data samples and synthetic samples. On the other hand, the
+generator is trained to produce samples that fool the discriminator, i.e.
+that are unlikely to be synthetic according to the discriminator.
+
+It can be shown that for a fixed generator, the optimal discriminator is
+
+$$
+    D^*(\mathbf{x}) = \frac{q(\mathbf{x})}{q(\mathbf{x}) + p(\mathbf{x})}
+$$
+
+and that given an optimal discriminator, minimizing the value function with
+respect to the generator parameters is equivalent to minimizing the
+Jensen-Shannon divergence between \\(p(\\mathbf{x})\\) and \\(q(\\mathbf{x})\\).
+
+In other words, as training progresses, the generator produces synthetic samples
+that look more and more like the training data.
 
 <a name="learning_inference"></a>
 
