@@ -1,6 +1,6 @@
 # Setup
 title:        Adversarially Learned Inference
-tagline:      Website for the Adversarially Learned Inference paper
+tagline:      Vincent Dumoulin, Ishmael Belghazi, Ben Poole, Alex Lamb, Martin Arjovsky, Olivier Mastropietro and Aaron Courville
 baseurl:      "/ALI"
 
 # About/contact
