@@ -14,6 +14,7 @@ title: {{ site.name }}
     * [CIFAR10](#cifar10)
     * [SVHN](#svhn)
     * [CelebA](#celeba)
+    * [Tiny ImageNet](#tiny_imagenet)
     * [Semi-supervised learning](#semi_supervised)
 
 ---
@@ -198,6 +199,28 @@ examples.
   <tr>
     <td><img src="{{ site.baseurl }}/assets/celeba_samples.png"></td>
     <td><img src="{{ site.baseurl }}/assets/celeba_reconstructions.png"></td>
+  </tr>
+  <tr>
+    <td><center>Samples</center></td>
+    <td><center>Reconstructions</center></td>
+  </tr>
+</table>
+
+<a name="semi_supervised"></a>
+
+<a name="tiny_imagenet"></a>
+
+## Tiny ImageNet
+
+The Tiny Imagenet dataset is a version of the
+[ILSVRC2012](http://www.image-net.org/challenges/LSVRC/2012/) dataset that has
+been center-cropped and downsampled to \\(64 \\times 64\\) pixels. It contains
+over 1,200,000 labeled examples.
+
+<table>
+  <tr>
+    <td><img src="{{ site.baseurl }}/assets/tiny_imagenet_samples.png"></td>
+    <td><img src="{{ site.baseurl }}/assets/tiny_imagenet_reconstructions.png"></td>
   </tr>
   <tr>
     <td><center>Samples</center></td>
