@@ -24,7 +24,7 @@ from ali.utils import get_log_odds, conv_brick, conv_transpose_brick, bn_brick
 
 BATCH_SIZE = 100
 MONITORING_BATCH_SIZE = 500
-NUM_EPOCHS = 1000
+NUM_EPOCHS = 5000
 IMAGE_SIZE = (32, 32)
 NUM_CHANNELS = 3
 NLAT = 64
