@@ -28,7 +28,10 @@ efficient inference with the generative adversarial networks (GAN) framework.
 
 What makes ALI unique is that unlike other approaches to learning inference in
 deep directed generative models like variational autoencoders (VAEs), the
-objective function involves **no** explicit reconstruction loop.
+objective function involves **no** explicit reconstruction loop. This produces
+reconstructions that are quite different, in that they do not attempt to be
+pixel perfect (leading to blurring), but rather attempt to capture semantically
+salient information.
 
 <a name="gan_intro"></a>
 
@@ -101,21 +104,34 @@ that look more and more like the training data.
 
 ## Learning inference
 
-ALI augments the generator with an inference network \\(q(\\mathbf{z} \\mid
-\\mathbf{x})\\). This allows to define two joint distributions:
+Even though GANs are pretty good at producing realistic-looking synthetic
+samples, they lack something very important: the ability to do inference.
+
+Inference can loosely be defined as the answer to the following question:
+
+> Given \\(\\mathbf{x}\\), what \\(\\mathbf{z}\\) is likely to have produced it?
+
+This question is exactly what ALI is equipped to answer.
+
+ALI augments GAN's generator with an additional network. This network receives
+a data sample as input and produces a synthetic \\(\\mathbf{z}\\) as output.
+
+Expressed in probabilistic terms, ALI defines two joint distributions:
 
 * the _encoder_ joint \\(q(\\mathbf{x}, \\mathbf{z}) = q(\\mathbf{x})
   q(\\mathbf{z} \\mid \\mathbf{x})\\), and
 * the _decoder_ joint \\(p(\\mathbf{x}, \\mathbf{z}) = p(\\mathbf{z})
   p(\\mathbf{x} \\mid \\mathbf{z})\\).
 
-Rather than examining \\(\\mathbf{x}\\) samples marginally, the discriminator
-now receives joint pairs \\((\\mathbf{x}, \\mathbf{z})\\) as input and must
-predict whether they come from the encoder joint or the decoder joint. Like
-before, the generator is trained to fool the discriminator, but this time it
-can also learn \\(q(\\mathbf{z} \\mid \\mathbf{x})\\).
+ALI also modifies the discriminator's goal. Rather than examining
+\\(\\mathbf{x}\\) samples marginally, it now receives joint pairs
+\\((\\mathbf{x}, \\mathbf{z})\\) as input and must predict whether they come
+from the encoder joint or the decoder joint.
 
 ![Adversarially learned inference]({{ site.baseurl }}/assets/ali_probabilistic.svg)
+
+Like before, the generator is trained to fool the discriminator, but this time
+it can also learn \\(q(\\mathbf{z} \\mid \\mathbf{x})\\).
 
 In analogy to GAN, the adversarial game played between the discriminator and the
 generator has the side effect that the two _joint_ distributions eventually match,
