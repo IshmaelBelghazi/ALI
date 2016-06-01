@@ -18,7 +18,8 @@ from blocks.roles import INPUT
 from theano import tensor
 
 from ali.algorithms import ali_algorithm
-from ali.bricks import ALI, ConvMaxout
+from ali.bricks import (ALI, GaussianConditional, DeterministicConditional,
+                        XZJointDiscriminator, ConvMaxout)
 from ali.streams import create_cifar10_data_streams
 from ali.utils import get_log_odds, conv_brick, conv_transpose_brick, bn_brick
 
@@ -45,9 +46,10 @@ def create_model_brick():
         conv_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK),
         conv_brick(1, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK),
         conv_brick(1, 1, 2 * NLAT)]
-    encoder = ConvolutionalSequence(
+    encoder_mapping = ConvolutionalSequence(
         layers=layers, num_channels=NUM_CHANNELS, image_size=IMAGE_SIZE,
-        use_bias=False, name='encoder')
+        use_bias=False, name='encoder_mapping')
+    encoder = GaussianConditional(encoder_mapping, name='encoder')
 
     layers = [
         conv_transpose_brick(4, 1, 256), bn_brick(), LeakyRectifier(leak=LEAK),
@@ -57,9 +59,10 @@ def create_model_brick():
         conv_transpose_brick(5, 1, 32), bn_brick(), LeakyRectifier(leak=LEAK),
         conv_transpose_brick(1, 1, 32), bn_brick(), LeakyRectifier(leak=LEAK),
         conv_brick(1, 1, NUM_CHANNELS), Logistic()]
-    decoder = ConvolutionalSequence(
+    decoder_mapping = ConvolutionalSequence(
         layers=layers, num_channels=NLAT, image_size=(1, 1), use_bias=False,
-        name='decoder')
+        name='decoder_mapping')
+    decoder = DeterministicConditional(decoder_mapping, name='decoder')
 
     layers = [
         conv_brick(5, 1, 32), ConvMaxout(num_pieces=NUM_PIECES),
@@ -69,7 +72,7 @@ def create_model_brick():
         conv_brick(4, 1, 512), ConvMaxout(num_pieces=NUM_PIECES)]
     x_discriminator = ConvolutionalSequence(
         layers=layers, num_channels=NUM_CHANNELS, image_size=IMAGE_SIZE,
-        use_bias=False, name='x_discriminator')
+        name='x_discriminator')
     x_discriminator.push_allocation_config()
 
     layers = [
@@ -91,21 +94,23 @@ def create_model_brick():
         image_size=(1, 1),
         name='joint_discriminator')
 
-    ali = ALI(encoder, decoder, x_discriminator, z_discriminator,
-              joint_discriminator, weights_init=GAUSSIAN_INIT,
-              biases_init=ZERO_INIT, name='ali')
+    discriminator = XZJointDiscriminator(
+        x_discriminator, z_discriminator, joint_discriminator,
+        name='discriminator')
+
+    ali = ALI(encoder, decoder, discriminator,
+              weights_init=GAUSSIAN_INIT, biases_init=ZERO_INIT,
+              name='ali')
     ali.push_allocation_config()
-    encoder.layers[-1].use_bias = True
-    encoder.layers[-1].tied_biases = False
-    decoder.layers[-2].use_bias = True
-    decoder.layers[-2].tied_biases = False
-    x_discriminator.layers[0].use_bias = True
-    x_discriminator.layers[0].tied_biases = True
+    encoder_mapping.layers[-1].use_bias = True
+    encoder_mapping.layers[-1].tied_biases = False
+    decoder_mapping.layers[-2].use_bias = True
+    decoder_mapping.layers[-2].tied_biases = False
     ali.initialize()
     raw_marginals, = next(
         create_cifar10_data_streams(500, 500)[0].get_epoch_iterator())
     b_value = get_log_odds(raw_marginals)
-    decoder.layers[-2].b.set_value(b_value)
+    decoder_mapping.layers[-2].b.set_value(b_value)
 
     return ali
 
@@ -113,21 +118,20 @@ def create_model_brick():
 def create_models():
     ali = create_model_brick()
     x = tensor.tensor4('features')
-    z = ali.theano_rng.normal(
-        size=(x.shape[0],) + ali.decoder.get_dim('input_'))
+    z = ali.theano_rng.normal(size=(x.shape[0], NLAT, 1, 1))
 
     def _create_model(with_dropout):
         cg = ComputationGraph(ali.compute_losses(x, z))
         if with_dropout:
             inputs = VariableFilter(
-                bricks=([ali.x_discriminator.layers[0],
-                         ali.z_discriminator.layers[0]]),
+                bricks=([ali.discriminator.x_discriminator.layers[0],
+                         ali.discriminator.z_discriminator.layers[0]]),
                 roles=[INPUT])(cg.variables)
             cg = apply_dropout(cg, inputs, 0.2)
             inputs = VariableFilter(
-                bricks=(ali.x_discriminator.layers[2::3] +
-                        ali.z_discriminator.layers[2::2] +
-                        ali.joint_discriminator.layers[::2]),
+                bricks=(ali.discriminator.x_discriminator.layers[2::3] +
+                        ali.discriminator.z_discriminator.layers[2::2] +
+                        ali.discriminator.joint_discriminator.layers[::2]),
                 roles=[INPUT])(cg.variables)
             cg = apply_dropout(cg, inputs, 0.5)
         return Model(cg.outputs)
@@ -157,10 +161,10 @@ def create_main_loop(save_path):
     streams = create_cifar10_data_streams(BATCH_SIZE, MONITORING_BATCH_SIZE)
     main_loop_stream, train_monitor_stream, valid_monitor_stream = streams
     bn_monitored_variables = (
-        [v for v in bn_model.auxiliary_variables if v.name.startswith('ali')] +
+        [v for v in bn_model.auxiliary_variables if 'norm' not in v.name] +
         bn_model.outputs)
     monitored_variables = (
-        [v for v in model.auxiliary_variables if v.name.startswith('ali')] +
+        [v for v in model.auxiliary_variables if 'norm' not in v.name] +
         model.outputs)
     extensions = [
         Timing(),

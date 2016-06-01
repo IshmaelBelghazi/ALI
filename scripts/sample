@@ -9,7 +9,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 
 def main(main_loop, nrows, ncols, save_path=None):
     ali, = main_loop.model.top_bricks
-    input_shape = ali.decoder.get_dim('input_')
+    input_shape = ali.encoder.get_dim('output')
     z = ali.theano_rng.normal(size=(nrows * ncols,) + input_shape)
     x = ali.sample(z)
     samples = theano.function([], x)()

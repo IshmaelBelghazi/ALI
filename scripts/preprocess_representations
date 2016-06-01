@@ -10,7 +10,7 @@ from blocks.roles import OUTPUT
 from blocks.select import Selector
 from blocks.serialization import load
 from fuel.converters.base import fill_hdf5_file
-from fuel.datasets import CIFAR10, SVHN
+from fuel.datasets import SVHN
 from fuel.streams import DataStream
 from fuel.schemes import SequentialScheme
 from theano import tensor
@@ -23,7 +23,7 @@ def preprocess_svhn(main_loop, save_path):
     x = tensor.tensor4('features')
     y = tensor.imatrix('targets')
     params = ali.encoder.apply(x)
-    mu, log_sigma = params[:, :ali._nlat], params[:, ali._nlat:]
+    mu = params[:, :ali.encoder._nlat]
     acts = []
     acts += [mu]
     acts += VariableFilter(
@@ -65,56 +65,10 @@ def preprocess_svhn(main_loop, save_path):
     h5file.close()
 
 
-def preprocess_cifar10(main_loop, save_path):
-    h5file = h5py.File(save_path, mode='w')
-
-    ali, = Selector(main_loop.model.top_bricks).select('/ali').bricks
-    x = tensor.tensor4('features')
-    y = tensor.imatrix('targets')
-    mu, log_sigma = ali._split_z_params(ali.sample_z_hat(x))
-    preprocess = theano.function([x, y], [mu.flatten(ndim=2), y])
-
-    train_set = CIFAR10(which_sets=('train',), sources=('features', 'targets'))
-    train_stream = DataStream(
-        train_set,
-        iteration_scheme=SequentialScheme(train_set.num_examples, 100))
-    train_features, train_targets = map(
-        numpy.vstack,
-        list(zip(*[preprocess(*batch) for batch in
-                   train_stream.get_epoch_iterator()])))
-
-    test_set = CIFAR10(which_sets=('test',), sources=('features', 'targets'))
-    test_stream = DataStream(
-        test_set,
-        iteration_scheme=SequentialScheme(test_set.num_examples, 100))
-    test_features, test_targets = map(
-        numpy.vstack,
-        list(zip(*[preprocess(*batch) for batch in
-                   test_stream.get_epoch_iterator()])))
-
-    data = (('train', 'features', train_features),
-            ('test', 'features', test_features),
-            ('train', 'targets', train_targets),
-            ('test', 'targets', test_targets))
-    fill_hdf5_file(h5file, data)
-    for i, label in enumerate(('batch', 'feature')):
-        h5file['features'].dims[i].label = label
-    for i, label in enumerate(('batch', 'index')):
-        h5file['targets'].dims[i].label = label
-
-    h5file.flush()
-    h5file.close()
-
-
 if __name__ == "__main__":
-    preprocessing_functions = {'svhn': preprocess_svhn,
-                               'cifar10': preprocess_cifar10}
-    parser = argparse.ArgumentParser(description="Preprocess ALI latent "
-                                                 "representations for "
-                                                 "semi-supervised learning")
-    parser.add_argument("which_dataset", type=str,
-                        choices=tuple(preprocessing_functions.keys()),
-                        help="name of the dataset to preprocess")
+    parser = argparse.ArgumentParser(
+        description="Preprocess ALI latent representations on SVHN for "
+                    "semi-supervised learning")
     parser.add_argument("main_loop_path", type=str,
                         help="path to the pickled main loop")
     parser.add_argument("save_path", type=str,
@@ -122,4 +76,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open(args.main_loop_path, 'rb') as src:
-        preprocessing_functions[args.which_dataset](load(src), args.save_path)
+        preprocess_svhn(load(src), args.save_path)

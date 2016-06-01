@@ -32,7 +32,6 @@ GEN_ACTIVATION = Rectifier
 DISC_HIDDEN = 400
 DISC_ACTIVATION = Rectifier
 LEARNING_RATE = 0.001
-BETA1 = 0.5
 NUM_EPOCHS = 200
 BATCH_SIZE = 100
 MONITORING_BATCH_SIZE = 500
@@ -117,7 +116,7 @@ def create_main_loop(save_path):
     model, bn_model, bn_updates = create_models()
     gan, = bn_model.top_bricks
     discriminator_loss, generator_loss = bn_model.outputs
-    step_rule = Adam(learning_rate=LEARNING_RATE, beta1=BETA1)
+    step_rule = Adam(learning_rate=LEARNING_RATE)
     algorithm = ali_algorithm(discriminator_loss, gan.discriminator_parameters,
                               step_rule, generator_loss,
                               gan.generator_parameters, step_rule)

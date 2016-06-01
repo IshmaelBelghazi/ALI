@@ -15,7 +15,7 @@ def main(main_loop, data_stream, nrows, ncols, save_path):
     ali, = main_loop.model.top_bricks
     x = tensor.tensor4('features')
     examples, = next(data_stream.get_epoch_iterator())
-    reconstructions = theano.function([], ali.reconstruct(x))(examples)
+    reconstructions = theano.function([x], ali.reconstruct(x))(examples)
 
     figure = pyplot.figure()
     grid = ImageGrid(figure, 111, (nrows, 2 * ncols), axes_pad=0.1)
