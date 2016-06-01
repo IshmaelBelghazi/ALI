@@ -32,8 +32,8 @@ What makes ALI unique is that unlike other approaches to learning inference in
 deep directed generative models like variational autoencoders (VAEs), the
 objective function involves **no** explicit reconstruction loop. This produces
 reconstructions that are quite different, in that they do not attempt to be
-pixel perfect (leading to blurring), but rather attempt to capture semantically
-salient information.
+pixel perfect (leading to blurring), but rather attempt to retain semantically
+salient information about the input.
 
 <a name="gan_intro"></a>
 
@@ -130,16 +130,47 @@ ALI also modifies the discriminator's goal. Rather than examining
 \\((\\mathbf{x}, \\mathbf{z})\\) as input and must predict whether they come
 from the encoder joint or the decoder joint.
 
-![Adversarially learned inference]({{ site.baseurl }}/assets/ali_probabilistic.svg)
-
 Like before, the generator is trained to fool the discriminator, but this time
 it can also learn \\(q(\\mathbf{z} \\mid \\mathbf{x})\\).
 
-In analogy to GAN, the adversarial game played between the discriminator and the
-generator has the side effect that the two _joint_ distributions eventually match,
-i.e., \\(p(\\mathbf{x}, \\mathbf{z}) \\sim q(\\mathbf{x}, \\mathbf{z})\\). This
-also means that the marginals match, and that the conditional on one
-distribution is the posterior of the other distribution, and vice versa.
+![Adversarially learned inference]({{ site.baseurl }}/assets/ali_probabilistic.svg)
+
+The adversarial game played between the discriminator and the generator is
+formalized by the following value function:
+
+$$
+\begin{split}
+    \min_G \max_D V(D, G)
+    &= \mathbb{E}_{q(\mathbf{x})} [\log(D(\mathbf{x}, G_z(\mathbf{x})))] +
+       \mathbb{E}_{p(\mathbf{z})} [\log(1 - D(G_x(\mathbf{z}), \mathbf{z}))] \\
+    &= \iint q(\mathbf{x}) q(\mathbf{z} \mid \mathbf{x})
+             \log(D(\mathbf{x}, \mathbf{z})) d\mathbf{x} d\mathbf{z} \\
+    &+ \iint p(\mathbf{z}) p(\mathbf{x} \mid \mathbf{z})
+             \log(1 - D(\mathbf{x}, \mathbf{z})) d\mathbf{x} d\mathbf{z}
+\end{split}
+$$
+
+
+In analogy to GAN, it can be shown that for a fixed generator, the optimal
+discriminator is
+
+$$
+    D^*(\mathbf{x}, \mathbf{z}) = \frac{q(\mathbf{x}, \mathbf{z})}
+                                       {q(\mathbf{x}, \mathbf{z}) +
+                                        p(\mathbf{x}, \mathbf{z})}
+$$
+
+and that given an optimal discriminator, minimizing the value function with
+respect to the generator parameters is equivalent to minimizing the
+Jensen-Shannon divergence between \\(p(\\mathbf{x}, \\mathbf{z})\\) and
+\\(q(\\mathbf{x}, \\mathbf{z})\\).
+
+Matching the joints also has the effect of matching the marginals
+(i.e., \\(p(\\mathbf{x}) \\sim q(\\mathbf{x})\\) and
+\\(p(\\mathbf{z}) \\sim q(\\mathbf{z})\\)) as well as the conditionals /
+posteriors (i.e.,
+\\(p(\\mathbf{z} \\mid \\mathbf{x}) \\sim q(\\mathbf{z} \\mid \\mathbf{x})\\) and
+\\(q(\\mathbf{x} \\mid \\mathbf{z}) \\sim p(\\mathbf{x} \\mid \\mathbf{z})\\)).
 
 <a name="experimental_results"></a>
 
