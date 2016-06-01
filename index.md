@@ -16,6 +16,7 @@ title: {{ site.name }}
     * [CelebA](#celeba)
     * [Tiny ImageNet](#tiny_imagenet)
     * [Semi-supervised learning](#semi_supervised)
+* [Conclusion](#conclusion)
 
 ---
 
@@ -290,6 +291,17 @@ error rate is measured along with its standard deviation.
 | SWWAE with dropout [^4]    | \\(23.56\\%\\)                          |
 | DCGAN + L2-SVM [^5]        | \\(22.18\\% (\\pm 1.13\\%)\\)           |
 | ALI (ours)                 | \\(\\mathbf{19.14\\% (\\pm 0.50\\%)}\\) |
+
+<a name="conclusion"></a>
+
+# Conclusion
+
+The adversarially learned inference (ALI) model jointly learns a generation
+network and an inference network using an adversarial process. The model learns
+mutually coherent inference and generation networks, as exhibited by its
+reconstructions. The induced latent variable mapping is shown to be useful,
+achieving state-of-the-art results on semi-supervised SVHN house number
+classification.
 
 ---
 
