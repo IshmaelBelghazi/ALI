@@ -285,7 +285,7 @@ error rate is measured along with its standard deviation.
 | Method                     | Error rate                              |
 | ---------------------      | --------------------------------------- |
 | KNN [^1]                   | \\(77.93\\%\\)                          |
-| TSVN [^2]                  | \\(66.55\\%\\)                          |
+| TSVM [^2]                  | \\(66.55\\%\\)                          |
 | M1 + M2 [^3]               | \\(36.02\\%\\)                          |
 | SWWAE without dropout [^4] | \\(27.83\\%\\)                          |
 | SWWAE with dropout [^4]    | \\(23.56\\%\\)                          |
