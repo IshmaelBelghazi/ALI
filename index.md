@@ -55,6 +55,8 @@ from the data distribution.
 
 ![Generative adversarial networks]({{ site.baseurl }}/assets/gan_simple.svg)
 
+<center><em>GAN: general idea</em></center>
+
 To better understand GANs, it is necessary to describe it using a probabilistic
 framework. Two marginal distributions are defined:
 
@@ -69,6 +71,8 @@ The discriminator receives either the generator sample or
 input was sampled from \\(q(\\mathbf{x})\\).
 
 ![Generative adversarial networks]({{ site.baseurl }}/assets/gan_probabilistic.svg)
+
+<center><em>GAN: probabilistic view</em></center>
 
 The adversarial game played between the discriminator and the generator is
 formalized by the following value function:
@@ -134,6 +138,8 @@ Like before, the generator is trained to fool the discriminator, but this time
 it can also learn \\(q(\\mathbf{z} \\mid \\mathbf{x})\\).
 
 ![Adversarially learned inference]({{ site.baseurl }}/assets/ali_probabilistic.svg)
+
+<center><em>ALI: probabilistic view</em></center>
 
 The adversarial game played between the discriminator and the generator is
 formalized by the following value function:
