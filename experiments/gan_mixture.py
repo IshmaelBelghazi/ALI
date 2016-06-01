@@ -20,8 +20,7 @@ from blocks.roles import INPUT
 
 from ali.algorithms import ali_algorithm
 from ali.streams import create_gaussian_mixture_data_streams
-from ali.bricks import (ALI, COVConditional, DeterministicConditional,
-                        XZJointDiscriminator)
+from ali.bricks import GAN
 from ali.utils import as_array
 
 import logging
@@ -48,20 +47,7 @@ PRIORS = None
 
 
 def create_model_brick():
-    encoder_mapping = MLP(
-        dims=[2 * INPUT_DIM, GEN_HIDDEN, GEN_HIDDEN, NLAT],
-        activations=[Sequence([BatchNormalization(GEN_HIDDEN).apply,
-                               GEN_ACTIVATION().apply],
-                              name='encoder_h1'),
-                     Sequence([BatchNormalization(GEN_HIDDEN).apply,
-                               GEN_ACTIVATION().apply],
-                              name='encoder_h2'),
-                     Identity(name='encoder_out')],
-        use_bias=False,
-        name='encoder_mapping')
-    encoder = COVConditional(encoder_mapping, (INPUT_DIM,), name='encoder')
-
-    decoder_mapping = MLP(
+    decoder = MLP(
         dims=[NLAT, GEN_HIDDEN, GEN_HIDDEN, INPUT_DIM],
         activations=[Sequence([BatchNormalization(GEN_HIDDEN).apply,
                                GEN_ACTIVATION().apply],
@@ -71,15 +57,12 @@ def create_model_brick():
                               name='decoder_h2'),
                      Identity(name='decoder_out')],
         use_bias=False,
-        name='decoder_mapping')
-    decoder = DeterministicConditional(decoder_mapping, name='decoder')
+        name='decoder')
 
-    x_discriminator = Identity(name='x_discriminator')
-    z_discriminator = Identity(name='z_discriminator')
-    joint_discriminator = Sequence(
+    discriminator = Sequence(
         application_methods=[
             LinearMaxout(
-                input_dim=INPUT_DIM + NLAT,
+                input_dim=INPUT_DIM,
                 output_dim=DISC_HIDDEN,
                 num_pieces=MAXOUT_PIECES,
                 weights_init=GAUSSIAN_INIT,
@@ -98,41 +81,37 @@ def create_model_brick():
                 weights_init=GAUSSIAN_INIT,
                 biases_init=ZERO_INIT,
                 name='discriminator_out').apply],
-        name='joint_discriminator')
-    discriminator = XZJointDiscriminator(
-        x_discriminator, z_discriminator, joint_discriminator,
         name='discriminator')
 
-    ali = ALI(encoder=encoder, decoder=decoder, discriminator=discriminator,
-              weights_init=GAUSSIAN_INIT, biases_init=ZERO_INIT, name='ali')
-    ali.push_allocation_config()
-    encoder_mapping.linear_transformations[-1].use_bias = True
-    decoder_mapping.linear_transformations[-1].use_bias = True
-    ali.initialize()
+    gan = GAN(decoder=decoder, discriminator=discriminator,
+              weights_init=GAUSSIAN_INIT, biases_init=ZERO_INIT, name='gan')
+    gan.push_allocation_config()
+    decoder.linear_transformations[-1].use_bias = True
+    gan.initialize()
 
-    return ali
+    return gan
 
 
 def create_models():
-    ali = create_model_brick()
+    gan = create_model_brick()
     x = tensor.matrix('features')
-    z = ali.theano_rng.normal(size=(x.shape[0], NLAT))
+    z = gan.theano_rng.normal(size=(x.shape[0], NLAT))
 
     def _create_model(with_dropout):
-        cg = ComputationGraph(ali.compute_losses(x, z))
+        cg = ComputationGraph(gan.compute_losses(x, z))
         if with_dropout:
             inputs = VariableFilter(
-                bricks=ali.discriminator.joint_discriminator.children[1:],
+                bricks=gan.discriminator.children[1:],
                 roles=[INPUT])(cg.variables)
             cg = apply_dropout(cg, inputs, 0.5)
             inputs = VariableFilter(
-                bricks=[ali.discriminator.joint_discriminator],
+                bricks=[gan.discriminator],
                 roles=[INPUT])(cg.variables)
             cg = apply_dropout(cg, inputs, 0.2)
         return Model(cg.outputs)
 
     model = _create_model(with_dropout=False)
-    with batch_normalization(ali):
+    with batch_normalization(gan):
         bn_model = _create_model(with_dropout=True)
 
     pop_updates = list(
@@ -144,12 +123,12 @@ def create_models():
 
 def create_main_loop(save_path):
     model, bn_model, bn_updates = create_models()
-    ali, = bn_model.top_bricks
+    gan, = bn_model.top_bricks
     discriminator_loss, generator_loss = bn_model.outputs
     step_rule = Adam(learning_rate=LEARNING_RATE, beta1=BETA1)
-    algorithm = ali_algorithm(discriminator_loss, ali.discriminator_parameters,
+    algorithm = ali_algorithm(discriminator_loss, gan.discriminator_parameters,
                               step_rule, generator_loss,
-                              ali.generator_parameters, step_rule)
+                              gan.generator_parameters, step_rule)
     algorithm.add_updates(bn_updates)
     streams = create_gaussian_mixture_data_streams(
         batch_size=BATCH_SIZE, monitoring_batch_size=MONITORING_BATCH_SIZE,
@@ -180,9 +159,9 @@ def create_main_loop(save_path):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    parser = argparse.ArgumentParser(description='Train ALI on MOG')
+    parser = argparse.ArgumentParser(description='Train GAN on MOG')
     parser.add_argument("--save-path", type=str,
-                        default='ali_mixture_prime.tar',
+                        default='gan_mixture_prime.tar',
                         help="main loop save path")
     args = parser.parse_args()
     main_loop = create_main_loop(args.save_path)

@@ -82,6 +82,55 @@ class ALI(Initializable, Random):
         return self.decoder.apply(self.encoder.apply(x))
 
 
+class COVConditional(Initializable, Random):
+    """Change-of-variables conditional.
+
+    Parameters
+    ----------
+    mapping : :class:`blocks.bricks.Brick`
+        Network mapping the concatenation of the input and a source of
+        noise to the output.
+    noise_shape : tuple of int
+        Shape of the input noise.
+
+    """
+    def __init__(self, mapping, noise_shape, **kwargs):
+        self.mapping = mapping
+        self.noise_shape = noise_shape
+
+        super(COVConditional, self).__init__(**kwargs)
+        self.children.extend([self.mapping])
+
+    def get_dim(self, name):
+        if isinstance(self.mapping, ConvolutionalSequence):
+            dim = self.mapping.get_dim(name)
+            if name == 'input_':
+                return (dim[0] - self.noise_shape[0],) + dim[1:]
+            else:
+                return dim
+        else:
+            if name == 'output':
+                return self.mapping.output_dim
+            elif name == 'input_':
+                return self.mapping.input_dim - self.noise_shape[0]
+            else:
+                return self.mapping.get_dim(name)
+
+    @application(inputs=['input_'], outputs=['output'])
+    def apply(self, input_, application_call):
+        epsilon = self.theano_rng.normal(
+            size=(input_.shape[0],) + self.noise_shape)
+        output = self.mapping.apply(
+            tensor.concatenate([input_, epsilon], axis=1))
+
+        application_call.add_auxiliary_variable(output.mean(), name='avg')
+        application_call.add_auxiliary_variable(output.std(), name='std')
+        application_call.add_auxiliary_variable(output.min(), name='min')
+        application_call.add_auxiliary_variable(output.max(), name='max')
+
+        return output
+
+
 class GaussianConditional(Initializable, Random):
     """Gaussian conditional.
 
@@ -106,14 +155,19 @@ class GaussianConditional(Initializable, Random):
             return self.get_dim('output')
 
     def get_dim(self, name):
-        dim = self.mapping.get_dim(name)
-        if name == 'output':
-            if isinstance(self.mapping, ConvolutionalSequence):
+        if isinstance(self.mapping, ConvolutionalSequence):
+            dim = self.mapping.get_dim(name)
+            if name == 'output':
                 return (dim[0] // 2,) + dim[1:]
             else:
-                return dim // 2
+                return dim
         else:
-            return dim
+            if name == 'output':
+                return self.mapping.output_dim // 2
+            elif name == 'input_':
+                return self.mapping.input_dim
+            else:
+                return self.mapping.get_dim(name)
 
     @application(inputs=['input_'], outputs=['output'])
     def apply(self, input_, application_call):
