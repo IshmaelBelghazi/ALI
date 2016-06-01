@@ -14,6 +14,7 @@ title: {{ site.name }}
     * [CIFAR10](#cifar10)
     * [SVHN](#svhn)
     * [CelebA](#celeba)
+    * [Semi-supervised learning](#semi_supervised)
 
 ---
 
@@ -143,6 +144,11 @@ distribution is the posterior of the other distribution, and vice versa.
 
 # Experimental results
 
+**Regarding reconstructions: odd columns are validation set examples, even
+columns are their corresponding reconstructions (e.g., first column contains
+validation set examples, second column contains their corresponding
+reconstruction).**
+
 <a name="cifar10"></a>
 
 ## CIFAR10
@@ -150,17 +156,16 @@ distribution is the posterior of the other distribution, and vice versa.
 The [CIFAR10](https://www.cs.toronto.edu/~kriz/cifar.html) dataset contains
 60,000 32x32 colour images in 10 classes.
 
-### Samples
-
-![CIFAR10 samples]({{ site.baseurl }}/assets/cifar10_samples.png)
-
-### Reconstructions
-
-Odd columns are validation set examples, even columns are their corresponding
-reconstructions (e.g., first column contains validation set examples, second
-column contains their corresponding reconstruction).
-
-![CIFAR10 reconstructions]({{ site.baseurl }}/assets/cifar10_reconstructions.png)
+<table>
+  <tr>
+    <td><img src="{{ site.baseurl }}/assets/cifar10_samples.png"></td>
+    <td><img src="{{ site.baseurl }}/assets/cifar10_reconstructions.png"></td>
+  </tr>
+  <tr>
+    <td><center>Samples</center></td>
+    <td><center>Reconstructions</center></td>
+  </tr>
+</table>
 
 <a name="svhn"></a>
 
@@ -170,17 +175,16 @@ column contains their corresponding reconstruction).
 obtained from house numbers in Google Street View images. It contains over
 600,000 labeled examples.
 
-### Samples
-
-![SVHN samples]({{ site.baseurl }}/assets/svhn_samples.png)
-
-### Reconstructions
-
-Odd columns are validation set examples, even columns are their corresponding
-reconstructions (e.g., first column contains validation set examples, second
-column contains their corresponding reconstruction).
-
-![SVHN reconstructions]({{ site.baseurl }}/assets/svhn_reconstructions.png)
+<table>
+  <tr>
+    <td><img src="{{ site.baseurl }}/assets/svhn_samples.png"></td>
+    <td><img src="{{ site.baseurl }}/assets/svhn_reconstructions.png"></td>
+  </tr>
+  <tr>
+    <td><center>Samples</center></td>
+    <td><center>Reconstructions</center></td>
+  </tr>
+</table>
 
 <a name="celeba"></a>
 
@@ -190,14 +194,39 @@ column contains their corresponding reconstruction).
 celebrity faces with 40 attribute annotations. It contains over 200,000 labeled
 examples.
 
-### Samples
+<table>
+  <tr>
+    <td><img src="{{ site.baseurl }}/assets/celeba_samples.png"></td>
+    <td><img src="{{ site.baseurl }}/assets/celeba_reconstructions.png"></td>
+  </tr>
+  <tr>
+    <td><center>Samples</center></td>
+    <td><center>Reconstructions</center></td>
+  </tr>
+</table>
 
-![CelebA samples]({{ site.baseurl }}/assets/celeba_samples.png)
+<a name="semi_supervised"></a>
 
-### Reconstructions
+## Semi-supervised learning
 
-Odd columns are validation set examples, even columns are their corresponding
-reconstructions (e.g., first column contains validation set examples, second
-column contains their corresponding reconstruction).
+ALI achieves state-of-the-art on the semi-supervised SVHN task.
 
-![CelebA reconstructions]({{ site.baseurl }}/assets/celeba_reconstructions.png)
+We follow the procedure outlined by [DCGAN](https://arxiv.org/abs/1511.06434).
+We train an L2-SVM on the learned representations of a model trained on SVHN.
+The last three hidden layers of the encoder as well as its output are
+concatenated to form a 8960-dimensional feature vector. A 10,000 example
+held-out validation set is taken from the training set and is used for model
+selection. The SVM is trained on 1000 examples taken at random from the
+remainder of the training set. The test error rate is measured for 100 different
+SVMs trained on different random 1000-example training sets, and the average
+error rate is measured along with its standard deviation.
+
+| Method                | Error rate                              |
+| --------------------- | --------------------------------------- |
+| KNN                   | \\(77.93\\%\\)                          |
+| TSVN                  | \\(66.55\\%\\)                          |
+| M1 + M2               | \\(36.02\\%\\)                          |
+| SWWAE without dropout | \\(27.83\\%\\)                          |
+| SWWAE with dropout    | \\(23.56\\%\\)                          |
+| DCGAN + L2-SVM        | \\(22.18\\% (\\pm 1.13\\%)\\)           |
+| ALI                   | \\(\\mathbf{19.14\\% (\\pm 0.50\\%)}\\) |
