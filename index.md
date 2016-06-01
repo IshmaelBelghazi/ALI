@@ -275,12 +275,20 @@ remainder of the training set. The test error rate is measured for 100 different
 SVMs trained on different random 1000-example training sets, and the average
 error rate is measured along with its standard deviation.
 
-| Method                | Error rate                              |
-| --------------------- | --------------------------------------- |
-| KNN                   | \\(77.93\\%\\)                          |
-| TSVN                  | \\(66.55\\%\\)                          |
-| M1 + M2               | \\(36.02\\%\\)                          |
-| SWWAE without dropout | \\(27.83\\%\\)                          |
-| SWWAE with dropout    | \\(23.56\\%\\)                          |
-| DCGAN + L2-SVM        | \\(22.18\\% (\\pm 1.13\\%)\\)           |
-| ALI                   | \\(\\mathbf{19.14\\% (\\pm 0.50\\%)}\\) |
+| Method                     | Error rate                              |
+| ---------------------      | --------------------------------------- |
+| KNN [^1]                   | \\(77.93\\%\\)                          |
+| TSVN [^2]                  | \\(66.55\\%\\)                          |
+| M1 + M2 [^3]               | \\(36.02\\%\\)                          |
+| SWWAE without dropout [^4] | \\(27.83\\%\\)                          |
+| SWWAE with dropout [^4]    | \\(23.56\\%\\)                          |
+| DCGAN + L2-SVM [^5]        | \\(22.18\\% (\\pm 1.13\\%)\\)           |
+| ALI (ours)                 | \\(\\mathbf{19.14\\% (\\pm 0.50\\%)}\\) |
+
+---
+
+[^1]: As reported in Zhao, J., Mathieu, M., Goroshin, R., and Lecun, Y. (2015). Stacked what-where auto-encoders. _arXiv preprint arXiv:1506.02351_.
+[^2]: Vapnik, V. N. (1998). Statistical Learning Theory. Wiley-Interscience.
+[^3]: Kingma, D. P., Mohamed, S., Rezende, D. J., and Welling, M. (2014). Semi-supervised learning with deep generative models. In _Advances in Neural Information Processing Systems_, pages 3581–3589.
+[^4]: Zhao, J., Mathieu, M., Goroshin, R., and Lecun, Y. (2015). Stacked what-where auto-encoders. _arXiv preprint arXiv:1506.02351_.
+[^5]: Radford, A., Metz, L., and Chintala, S. (2015). Unsupervised representation learning with deep convolutional generative adversarial networks. _arXiv preprint arXiv:1511.06434_.
