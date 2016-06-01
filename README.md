@@ -109,3 +109,33 @@ e.g.
 ``` bash
 $ THEANORC=theanorc scripts/reconstruct cifar10 ali_cifar10.tar
 ```
+
+### Semi-supervised learning on SVHN
+
+First, preprocess the SVHN dataset with the learned ALI features:
+
+``` bash
+$ THEANORC=theanorc scripts/preprocess_representations [main_loop.tar] [save_path.hdf5]
+```
+
+e.g.
+
+``` bash
+$ THEANORC=theanorc scripts/preprocess_representations ali_svhn.tar ali_svhn_preprocessed.hdf5
+```
+
+Then, launch the semi-supervised script:
+
+``` bash
+$ python experiments/semi_supervised_svhn.py ali_svhn.tar [save_path.hdf5]
+```
+
+e.g.
+
+``` bash
+$ python experiments/semi_supervised_svhn.py ali_svhn_preprocessed.hdf5
+
+[...]
+Validation error rate = ... +- ...
+Test error rate = ... +- ...
+```
