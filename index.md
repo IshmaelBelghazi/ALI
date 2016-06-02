@@ -253,8 +253,6 @@ examples.
   </tr>
 </table>
 
-<a name="semi_supervised"></a>
-
 <a name="tiny_imagenet"></a>
 
 ## Tiny ImageNet
