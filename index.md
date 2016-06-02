@@ -278,7 +278,11 @@ over 1,200,000 labeled examples.
 
 ## Semi-supervised learning
 
-ALI achieves a competitive performance on the semi-supervised SVHN task.
+ALI achieves a competitive performance on the semi-supervised SVHN task. The
+SDGM’s performance is achieved via a carefully designed two-layer architecture
+that explicitly takes label information into account in learning the
+representation. We expect that ALI would also gain by taking account of label
+information in learning the representation.
 
 We follow the procedure outlined by [DCGAN](https://arxiv.org/abs/1511.06434).
 We train an L2-SVM on the learned representations of a model trained on SVHN.
