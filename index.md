@@ -16,6 +16,7 @@ title: {{ site.name }}
     * [CelebA](#celeba)
     * [Tiny ImageNet](#tiny_imagenet)
     * [Semi-supervised learning](#semi_supervised)
+    * [Comparison with GAN on a toy task](#toy_task)
 * [Conclusion](#conclusion)
 
 ---
@@ -298,6 +299,23 @@ error rate is measured along with its standard deviation.
 | SWWAE with dropout [^4]    | \\(23.56\\%\\)                          |
 | DCGAN + L2-SVM [^5]        | \\(22.18\\% (\\pm 1.13\\%)\\)           |
 | ALI (ours)                 | \\(\\mathbf{19.14\\% (\\pm 0.50\\%)}\\) |
+
+<a name="toy_task"></a>
+
+## Comparison with GAN on a toy task
+
+The following figure shows a comparison of the ability of GAN and ALI to fit a
+simple 2-dimensional synthetic gaussian mixture dataset. The decoder and
+discriminator networks are matched between ALI and GAN, and the hyperparameters
+are the same. In this experiment, ALI converges faster than GAN and to a better
+solution. Despite the relative simplicity of the data distribution, GAN
+partially failed to converge to the distribution, ignoring the central mode.
+
+![Comparison with GAN on a toy task]({{ site.baseurl }}/assets/mixture_plot.png)
+
+The toy task also exhibits nice properties of the features learned by ALI: when
+mapped to the latent space, data samples cover the whole prior, and they get
+clustered by mixture components, with a clear separation between each mode.
 
 <a name="conclusion"></a>
 
