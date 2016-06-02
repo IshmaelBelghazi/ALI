@@ -537,6 +537,16 @@ rather than marginal $\bm{z}$ samples.
         reconstructions.}
 \end{figure}
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[height=\figureHeight]{celeba_interpolations.png}
+    \caption{\label{fig:celeba_interpolations} Latent space interpolations on
+        the CelebA validation set. Left and right columns correspond to the
+        original pairs $\mathbf{x}_1$ and $\mathbf{x}_2$, and the columns in
+        between correspond to the decoding of latent representations
+        interpolated linearly from $\mathbf{z}_1$ to $\mathbf{z}_2$.}
+\end{figure}
+
 \begin{table}[t]
 \centering
 \begin{tabular}{@{}llll@{}} \toprule
@@ -585,6 +595,19 @@ For each dataset, samples are presented (Figures \ref{fig:cifar10_samples},
 \ref{fig:svhn_samples}, \ref{fig:celeba_samples} and
 \ref{fig:tiny_imagenet_samples}). They exhibit the same image fidelity as samples
 from other adversarially-trained models.
+
+\subsection{Latent space interpolations}
+As a sanity check for overfitting, we look at latent space interpolations
+between validation set examples (\autoref{fig:celeba_interpolations}). We sample
+pairs of validation set examples $\mathbf{x}_1$ and $\mathbf{x}_2$ and project
+them into $\mathbf{z}_1$ and $\mathbf{z}_2$ by sampling from the encoder. We
+then linearly interpolate between $\mathbf{z}_1$ and $\mathbf{z}_2$ and pass the
+intermediary points through the decoder to plot the input-space interpolations.
+
+We observe smooth transitions between pairs of example, and intermediary images
+remain believable. This is an indicator that ALI is not concentrating its
+probability mass exclusively around training examples, but rather has learned
+latent features that generalize well.
 
 \subsection{Reconstructions}
 We also qualitatively evaluate the fit between the conditional distribution
