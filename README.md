@@ -108,6 +108,18 @@ e.g.
 $ THEANORC=theanorc scripts/sample ali_cifar10.tar
 ```
 
+### Interpolations
+
+``` bash
+$ THEANORC=theanorc scripts/interpolate [which_dataset] [main_loop.tar]
+```
+
+e.g.
+
+``` bash
+$ THEANORC=theanorc scripts/interpolate celeba ali_celeba.tar
+```
+
 ### Reconstructions
 
 ``` bash
