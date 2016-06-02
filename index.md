@@ -15,6 +15,7 @@ title: {{ site.name }}
     * [SVHN](#svhn)
     * [CelebA](#celeba)
     * [Tiny ImageNet](#tiny_imagenet)
+    * [Latent space interpolations](#interpolations)
     * [Semi-supervised learning](#semi_supervised)
     * [Comparison with GAN on a toy task](#toy_task)
 * [Conclusion](#conclusion)
@@ -273,6 +274,25 @@ over 1,200,000 labeled examples.
     <td><center>Reconstructions</center></td>
   </tr>
 </table>
+
+<a name="interpolations"></a>
+
+## Latent space interpolations
+
+As a sanity check for overfitting, we look at latent space interpolations
+between CelebA validation set examples. We sample pairs of validation set
+examples \\(\\mathbf{x}\_1\\) and \\(\\mathbf{x}\_2\\) and project them into
+\\(\\mathbf{z}\_1\\) and \\(\\mathbf{z}\_2\\) by sampling from the encoder. We
+then linearly interpolate between \\(\\mathbf{z}\_1\\) and \\(\\mathbf{z}\_2\\)
+and pass the intermediary points through the decoder to plot the input-space
+interpolations.
+
+![Latent space interpolations]({{ site.baseurl }}/assets/celeba_interpolations.png)
+
+We observe smooth transitions between pairs of example, and intermediary images
+remain believable. This is an indicator that ALI is not concentrating its
+probability mass exclusively around training examples, but rather has learned
+latent features that generalize well.
 
 <a name="semi_supervised"></a>
 
