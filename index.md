@@ -30,11 +30,18 @@ an adversarial process. This model constitutes a novel approach to integrating
 efficient inference with the generative adversarial networks (GAN) framework.
 
 What makes ALI unique is that unlike other approaches to learning inference in
-deep directed generative models like variational autoencoders (VAEs), the
-objective function involves **no** explicit reconstruction loop. This produces
-reconstructions that are quite different, in that they do not attempt to be
-pixel perfect (leading to blurring), but rather attempt to retain semantically
-salient information about the input.
+deep directed generative models (like variational autoencoders (VAEs)), the
+objective function involves **no** explicit reconstruction loop.  Instead of
+focusing on achieving a pixel-perfect reconstruction, ALI tends to produce
+believable reconstructions with interesting variations, albeit at the expense
+of making some mistakes in capturing exact object placement, color, style and
+(in extreme cases) object identity. This is a good thing, because 1) capacity is
+not wasted to model trivial factors of variation in the input, and 2) the
+learned features are more or less invariant to these trivial factors of
+variation, which is what is expected of good feature learning.
+
+These strenghts are showcased via the semi-supervised learning task on SVHN,
+where ALI achieves state-of-the-art, ahead of DCGAN and VAE.
 
 <a name="gan_intro"></a>
 
