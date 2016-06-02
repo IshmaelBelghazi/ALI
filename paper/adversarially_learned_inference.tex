@@ -614,7 +614,11 @@ The fact that ALI's latent representation tends to focus on semantic information
 at the expense of low-level details leads us to believe that ALI may be well
 suited to semi-supervised tasks. We empirically verify this by achieving a
 competitive performance on the semi-supervised SVHN classification task.
-Results are presented in \autoref{tab:semi-supervised}.
+Results are presented in \autoref{tab:semi-supervised}. The SDGM's performance
+is achieved via a carefully designed two-layer architecture that explicitly
+takes label information into account in learning the representation. We expect
+that ALI would also gain by taking account of label information in learning the
+representation.
 
 We follow the procedure outlined by \citet{radford2015unsupervised}. We train an
 L2-SVM on the learned representations of a model trained on SVHN. The last three
