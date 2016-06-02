@@ -84,6 +84,16 @@ $ THEANORC=theanorc python experiments/ali_svhn.py
 $ THEANORC=theanorc python experiments/ali_celeba.py
 ```
 
+### Toy task
+
+``` bash
+$ THEANORC=theanorc python experiments/ali_mixture.py
+```
+
+``` bash
+$ THEANORC=theanorc python experiments/gan_mixture.py
+```
+
 ## Evaluating the models
 
 ### Samples
@@ -138,4 +148,16 @@ $ python experiments/semi_supervised_svhn.py ali_svhn_preprocessed.hdf5
 [...]
 Validation error rate = ... +- ...
 Test error rate = ... +- ...
+```
+
+### Toy task
+
+``` bash
+$ THEANORC=theanorc scripts/generate_mixture_plots [ali_main_loop.tar] [gan_main_loop.tar]
+```
+
+e.g.
+
+``` bash
+$ THEANORC=theanorc scripts/generate_mixture_plots ali_mixture.tar gan_mixture.tar
 ```
