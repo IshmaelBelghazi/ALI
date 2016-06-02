@@ -88,16 +88,16 @@
 \begin{abstract}
 We introduce the adversarially learned inference (ALI) model, which jointly
 learns a generation network and an inference network using an adversarial
-process. The generation network maps samples from stochastic latent variables
-to the data space while the inference network maps training examples in data
-space to the space of latent variables. An adversarial game is cast between
-these two networks and a discriminative network that is trained to distinguish
-between joint latent/data-space samples from the generative network and joint
-samples from the inference network.  We illustrate the ability of the model to learn mutually
-coherent inference and generation networks through the inspections of model
-samples and reconstructions and confirm the usefulness of the learned
-representations by obtaining state-of-the-art on the semi-supervised SVHN
-task, beating both DCGAN and VAE.
+process. The generation network maps samples from stochastic latent variables to
+the data space while the inference network maps training examples in data space
+to the space of latent variables. An adversarial game is cast between these two
+networks and a discriminative network that is trained to distinguish between
+joint latent/data-space samples from the generative network and joint samples
+from the inference network.  We illustrate the ability of the model to learn
+mutually coherent inference and generation networks through the inspections of
+model samples and reconstructions and confirm the usefulness of the learned
+representations by obtaining a performance competitive with other recent
+approaches on the semi-supervised SVHN task.
 \end{abstract}
 
 \section{Introduction}
@@ -546,8 +546,9 @@ TSVM \citep{vapnik1998}                        & $66.55\%$                      
 VAE (M1 + M2) \citep{kingma2014semi}           & $36.02\%$                       \\
 SWWAE without dropout \citep{zhao2015stacked}  & $27.83\%$                       \\
 SWWAE with dropout \citep{zhao2015stacked}     & $23.56\%$                       \\
-DCGAN + L2-SVM \citep{radford2015unsupervised} & $22.18\% (\pm 1.13\%)$          \\ \midrule
-ALI (ours)                                     & $\mathbf{19.14\% (\pm 0.50\%)}$ \\
+DCGAN + L2-SVM \citep{radford2015unsupervised} & $22.18\% (\pm 1.13\%)$          \\
+{\bf SDGM \citep{maaloe2016auxiliary}}         & $\mathbf{16.61\% (\pm 0.24\%)}$ \\ \midrule
+ALI (ours)                                     & $19.14\% (\pm 0.50\%)$          \\
 \bottomrule
 \end{tabular}
 \vspace{0.2cm}
@@ -609,10 +610,10 @@ interesting factors of variation in the input and do not devote model
 capacity to capturing these factors.
 
 \subsection{Semi-supervised learning}
-The fact that ALI's latent representation tends to focus on semantic
-information at the expense of low-level details leads us to believe that
-ALI may be well suited to semi-supervised tasks. We empirically verify this
-by achieving state of the art on the semi-supervised SVHN classification task.
+The fact that ALI's latent representation tends to focus on semantic information
+at the expense of low-level details leads us to believe that ALI may be well
+suited to semi-supervised tasks. We empirically verify this by achieving a
+competitive performance on the semi-supervised SVHN classification task.
 Results are presented in \autoref{tab:semi-supervised}.
 
 We follow the procedure outlined by \citet{radford2015unsupervised}. We train an
@@ -655,8 +656,8 @@ We introduced the adversarially learned inference (ALI) model, which jointly
 learns a generation network and an inference network using an adversarial
 process. The model learns mutually coherent inference and generation networks,
 as exhibited by its reconstructions. The induced latent variable mapping is
-shown to be useful, achieving state-of-the-art results on semi-supervised SVHN
-house number classification, beating both DCGAN and VAE.
+shown to be useful, achieving competitive results on semi-supervised SVHN house
+number classification.
 
 \iftoggle{draft}{}{%
 \subsubsection*{Acknowledgments}
