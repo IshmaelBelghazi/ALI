@@ -13,8 +13,8 @@ from ali.datasets import GaussianMixture
 rc('font', **{'family': 'serif', 'serif': 'Computer Modern Roman'})
 rc('text', usetex=True)
 
-MEANS = [numpy.array([i, j]) for i, j in itertools.product(range(-2, 3, 2),
-                                                           range(-2, 3, 2))]
+MEANS = [numpy.array([i, j]) for i, j in itertools.product(range(-4, 5, 2),
+                                                           range(-4, 5, 2))]
 VARIANCES = [0.05 ** 2 * numpy.eye(len(mean)) for mean in MEANS]
 PRIORS = None
 
@@ -39,14 +39,14 @@ def main(ali_main_loop, gan_main_loop, save_path=None):
     samples = theano.function([], [x, x_tilde, x_hat, gan_x_tilde, z, z_hat])()
     x, x_tilde, x_hat, gan_x_tilde, z, z_hat = samples
 
-    figure, axes = pyplot.subplots(nrows=2, ncols=4)
+    figure, axes = pyplot.subplots(nrows=2, ncols=4, figsize=(8, 4.5))
     for ax in axes.ravel():
         ax.set_aspect('equal')
     for ax in axes[0]:
-        ax.set_xlim([-4, 4])
-        ax.set_ylim([-4, 4])
-        ax.set_xticks([-4, -2, 0, 2, 4])
-        ax.set_yticks([-4, -2, 0, 2, 4])
+        ax.set_xlim([-6, 6])
+        ax.set_ylim([-6, 6])
+        ax.set_xticks([-6, -4, -2, 0, 2, 4, 6])
+        ax.set_yticks([-6, -4, -2, 0, 2, 4, 6])
         ax.set_xlabel('$x_1$')
         ax.set_ylabel('$x_2$')
     for ax in axes[1]:
@@ -65,16 +65,16 @@ def main(ali_main_loop, gan_main_loop, save_path=None):
     axes[1, 1].scatter(z_hat[:, 0], z_hat[:, 1], marker='.', c=targets.ravel(),
                        alpha=0.3)
     # ALI - p(x, z)
-    axes[0, 1].set_title(
+    axes[0, 2].set_title(
         '$\\tilde{\mathbf{x}} \sim p(\mathbf{x} \mid \mathbf{z})$')
-    axes[0, 1].scatter(x_tilde[:, 0], x_tilde[:, 1], marker='.', c='black',
+    axes[0, 2].scatter(x_tilde[:, 0], x_tilde[:, 1], marker='.', c='black',
                        alpha=0.3)
     axes[1, 2].set_title('$\mathbf{z} \sim p(\mathbf{z})$')
     axes[1, 2].scatter(z[:, 0], z[:, 1], marker='.', c='black', alpha=0.3)
     # ALI - q(z) p(x | z) (reconstruction)
-    axes[0, 2].set_title(
+    axes[0, 1].set_title(
         '$\hat{\mathbf{x}} \sim p(\mathbf{x} \mid \hat{\mathbf{z}}$)')
-    axes[0, 2].scatter(x_hat[:, 0], x_hat[:, 1], marker='.',
+    axes[0, 1].scatter(x_hat[:, 0], x_hat[:, 1], marker='.',
                        c=targets.ravel(), alpha=0.3)
     # GAN - p(x)
     axes[0, 3].set_title('GAN $\mathbf{x} = G(\mathbf{z})$')

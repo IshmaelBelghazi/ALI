@@ -29,20 +29,20 @@ import argparse
 
 INPUT_DIM = 2
 NLAT = 2
-GEN_HIDDEN = 200
-DISC_HIDDEN = 800
+GEN_HIDDEN = 400
+DISC_HIDDEN = 200
 GEN_ACTIVATION = Rectifier
 MAXOUT_PIECES = 5
 GAUSSIAN_INIT = IsotropicGaussian(std=0.02)
 ZERO_INIT = Constant(0.0)
 
 NUM_EPOCHS = 200
-LEARNING_RATE = 1e-5
-BETA1 = 0.5
+LEARNING_RATE = 1e-4
+BETA1 = 0.8
 BATCH_SIZE = 100
 MONITORING_BATCH_SIZE = 500
-MEANS = [numpy.array([i, j]) for i, j in itertools.product(range(-2, 3, 2),
-                                                           range(-2, 3, 2))]
+MEANS = [numpy.array([i, j]) for i, j in itertools.product(range(-4, 5, 2),
+                                                           range(-4, 5, 2))]
 VARIANCES = [0.05 ** 2 * numpy.eye(len(mean)) for mean in MEANS]
 PRIORS = None
 
@@ -62,13 +62,19 @@ def create_model_brick():
     encoder = COVConditional(encoder_mapping, (INPUT_DIM,), name='encoder')
 
     decoder_mapping = MLP(
-        dims=[NLAT, GEN_HIDDEN, GEN_HIDDEN, INPUT_DIM],
+        dims=[NLAT, GEN_HIDDEN, GEN_HIDDEN, GEN_HIDDEN, GEN_HIDDEN, INPUT_DIM],
         activations=[Sequence([BatchNormalization(GEN_HIDDEN).apply,
                                GEN_ACTIVATION().apply],
                               name='decoder_h1'),
                      Sequence([BatchNormalization(GEN_HIDDEN).apply,
                                GEN_ACTIVATION().apply],
                               name='decoder_h2'),
+                     Sequence([BatchNormalization(GEN_HIDDEN).apply,
+                               GEN_ACTIVATION().apply],
+                              name='decoder_h3'),
+                     Sequence([BatchNormalization(GEN_HIDDEN).apply,
+                               GEN_ACTIVATION().apply],
+                              name='decoder_h4'),
                      Identity(name='decoder_out')],
         use_bias=False,
         name='decoder_mapping')
@@ -92,6 +98,13 @@ def create_model_brick():
                 weights_init=GAUSSIAN_INIT,
                 biases_init=ZERO_INIT,
                 name='discriminator_h2').apply,
+            LinearMaxout(
+                input_dim=DISC_HIDDEN,
+                output_dim=DISC_HIDDEN,
+                num_pieces=MAXOUT_PIECES,
+                weights_init=GAUSSIAN_INIT,
+                biases_init=ZERO_INIT,
+                name='discriminator_h3').apply,
             Linear(
                 input_dim=DISC_HIDDEN,
                 output_dim=1,
@@ -133,7 +146,7 @@ def create_models():
 
     model = _create_model(with_dropout=False)
     with batch_normalization(ali):
-        bn_model = _create_model(with_dropout=True)
+        bn_model = _create_model(with_dropout=False)
 
     pop_updates = list(
         set(get_batch_normalization_updates(bn_model, allow_duplicates=True)))
