@@ -42,7 +42,7 @@ learned features are more or less invariant to these trivial factors of
 variation, which is what is expected of good feature learning.
 
 These strenghts are showcased via the semi-supervised learning task on SVHN,
-where ALI achieves state-of-the-art, ahead of DCGAN and VAE.
+where ALI achieves a performance competitive with other recent approaches.
 
 <a name="gan_intro"></a>
 
@@ -278,7 +278,7 @@ over 1,200,000 labeled examples.
 
 ## Semi-supervised learning
 
-ALI achieves state-of-the-art on the semi-supervised SVHN task.
+ALI achieves a competitive performance on the semi-supervised SVHN task.
 
 We follow the procedure outlined by [DCGAN](https://arxiv.org/abs/1511.06434).
 We train an L2-SVM on the learned representations of a model trained on SVHN.
@@ -298,7 +298,8 @@ error rate is measured along with its standard deviation.
 | SWWAE without dropout [^4] | \\(27.83\\%\\)                          |
 | SWWAE with dropout [^4]    | \\(23.56\\%\\)                          |
 | DCGAN + L2-SVM [^5]        | \\(22.18\\% (\\pm 1.13\\%)\\)           |
-| ALI (ours)                 | \\(\\mathbf{19.14\\% (\\pm 0.50\\%)}\\) |
+| **SDGM**       [^6]        | \\(\\mathbf{16.61\\% (\\pm 0.24\\%)}\\) |
+| ALI (ours)                 | \\(19.14\\% (\\pm 0.50\\%)\\)           |
 
 <a name="toy_task"></a>
 
@@ -325,7 +326,7 @@ The adversarially learned inference (ALI) model jointly learns a generation
 network and an inference network using an adversarial process. The model learns
 mutually coherent inference and generation networks, as exhibited by its
 reconstructions. The induced latent variable mapping is shown to be useful,
-achieving state-of-the-art results on semi-supervised SVHN house number
+achieving competitive results on semi-supervised SVHN house number
 classification.
 
 ---
@@ -335,3 +336,4 @@ classification.
 [^3]: Kingma, D. P., Mohamed, S., Rezende, D. J., and Welling, M. (2014). Semi-supervised learning with deep generative models. In _Advances in Neural Information Processing Systems_, pages 3581–3589.
 [^4]: Zhao, J., Mathieu, M., Goroshin, R., and Lecun, Y. (2015). Stacked what-where auto-encoders. _arXiv preprint arXiv:1506.02351_.
 [^5]: Radford, A., Metz, L., and Chintala, S. (2015). Unsupervised representation learning with deep convolutional generative adversarial networks. _arXiv preprint arXiv:1511.06434_.
+[^6]: Maaløe, L., Sønderby, C. K., Sønderby, S. K., and Winther, O. (2016). Auxiliary deep generative models. _arXiv preprint arXiv:1602.05473_.
