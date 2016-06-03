@@ -22,6 +22,11 @@ title: {{ site.name }}
 
 ---
 
+**Note: Jeff Donahue, Philipp Krähenbühl and Trevor Darrell at Berkeley
+published a paper independently from us on the same idea, which they call
+Bidirectonal GAN, or BiGAN. You should also check out their awesome work at
+[https://arxiv.org/abs/1605.09782](https://arxiv.org/abs/1605.09782).**
+
 <a name="what_is"></a>
 
 # What is ALI?
