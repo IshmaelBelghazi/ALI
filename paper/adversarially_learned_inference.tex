@@ -472,6 +472,17 @@ discrete latent variables.
 	in~\cite{goodfellow2014generative}.
 \end{proof}
 
+\subsection{Invertibility}
+\label{sec:invertibility}
+\begin{prop}
+    At optimality, the encoder and decoder are inverses of one another.
+\end{prop}
+\begin{proof}
+    The proof is given in \citep{donahue2016adversarial}, in which the authors
+    independently examine the same model structure under the name Bidirectional
+    GAN (BiGAN).
+\end{proof}
+
 \subsection{Multilayer extensions of ALI}
 It is straightforward to extend the ALI framework to multiple stochastic layers,
 i.e.,
@@ -514,6 +525,10 @@ distribution $q(\bm{z} \mid \bm{x})$ and prior samples. However, unlike
 adversarial autoencoders, no explicit reconstruction loss is being optimized in
 ALI, and the discriminator receives joint pairs of samples $(\bm{x}, \bm{z})$
 rather than marginal $\bm{z}$ samples.
+
+Independent work by \citet{donahue2016adversarial} proposes the same model under
+the name Bidirectional GAN (BiGAN), in which the authors emphasize the learned
+features' usefulness for auxiliary supervised and semi-supervised tasks.
 
 \section{Experimental results}
 
