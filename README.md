@@ -21,7 +21,7 @@ $ latexmk --pdf adverarially_learned_inference
 Clone the repository, then install with
 
 ``` bash
-$ pip install -e ali
+$ pip install -e ALI
 ```
 
 ## Downloading and converting the datasets
