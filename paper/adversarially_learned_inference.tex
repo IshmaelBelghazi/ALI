@@ -1,19 +1,5 @@
 \documentclass{article}
 
-\usepackage{etoolbox}       % toggle sections on or off
-\newtoggle{draft}
-\togglefalse{draft}
-\newtoggle{arxiv}
-\toggletrue{arxiv}
-
-\iftoggle{draft}{
-% WIP version
-\usepackage{nips_2016}
-}{
-% Camera-ready version
-\usepackage[final]{nips_2016}
-}
-
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
 \usepackage{hyperref}       % hyperlinks
@@ -34,6 +20,7 @@
 \usepackage{algorithmicx}   % algorithm constructs
 \usepackage{bm}             % mathbold symbols
 \usepackage{url}            % urls
+\usepackage{iclr2017_conference, times}  % ICLR 2017
 
 \usetikzlibrary{shapes,positioning}
 \tikzset{>=latex}
@@ -42,7 +29,8 @@
 \newcommand\todo[1]{\textcolor{red}{TODO: #1}}
 \newcommand{\bcom}[1]{{\leavevmode\color{blue}{[ben: #1]}}}
 \newcommand{\EE}{\mathbb{E}}
-
+\newenvironment{sketchproof}{%
+  \renewcommand{\proofname}{Sketch of proof}\proof}{\endproof}
 \newcommand{\figureHeight}{5cm}
 
 \renewcommand{\arraystretch}{1.3} % More space between table rows
@@ -52,33 +40,14 @@
 
 \title{Adversarially Learned Inference}
 
-% Using \And between authors leaves it to LaTeX to determine where to
-% break the lines. Using \AND forces a line break at that point. So,
-% if LaTeX puts 3 of 4 authors names on the first line, and the last
-% on the second line, try using \AND instead of \And before the third
-% author name.
-
 \author{
-    Vincent Dumoulin\thanks{MILA, Université de Montréal} \\
-    \texttt{vincent.dumoulin@umontreal.ca} \\
-    \And
-    Ishmael Belghazi\samethanks[1] \\
-    \texttt{ishmael.belghazi@gmail.com} \\
-    \And
-    Ben Poole \thanks{Neural Dynamics and Computation Lab, Stanford} \\
-    \texttt{poole@cs.stanford.edu} \\
-    \And
-    Alex Lamb\samethanks[1] \\
-    \texttt{alex6200@gmail.com} \\
-    \And
-    Martin Arjovsky\samethanks[1] \\
-    \texttt{martinarjovsky@gmail.com} \\
-    \And
-    Olivier Mastropietro\samethanks[1] \\
-    \texttt{oli.mastro@gmail.com} \\
-    \And
-    Aaron Courville\samethanks[1]\textnormal{,\ \ CIFAR Fellow} \\
-    \texttt{aaron.courville@gmail.com} \\
+  Vincent Dumoulin$^{1}$, Ishmael Belghazi$^{1}$, Ben Poole$^{2}$\\
+  {\bf Olivier Mastropietro$^{1}$}, {\bf Alex Lamb$^{1}$}, {\bf Martin Arjovsky$^{3}$}\\
+  {\bf Aaron Courville$^{1\dagger}$}\\
+  $^1$ MILA, Universit\'e de Montr\'eal, \texttt{firstname.lastname@umontreal.ca}.\\
+  $^2$ Neural Dynamics and Computation Lab, Stanford, \texttt{poole@cs.stanford.edu}. \\
+  $^3$ New York University, \texttt{martinarjovsky@gmail.com}. \\
+  $^\dagger$CIFAR Fellow.\\
 }
 
 \begin{document}
@@ -91,101 +60,78 @@ learns a generation network and an inference network using an adversarial
 process. The generation network maps samples from stochastic latent variables to
 the data space while the inference network maps training examples in data space
 to the space of latent variables. An adversarial game is cast between these two
-networks and a discriminative network that is trained to distinguish between
+networks and a discriminative network is trained to distinguish between
 joint latent/data-space samples from the generative network and joint samples
 from the inference network.  We illustrate the ability of the model to learn
 mutually coherent inference and generation networks through the inspections of
 model samples and reconstructions and confirm the usefulness of the learned
-representations by obtaining a performance competitive with other recent
-approaches on the semi-supervised SVHN task.
+representations by obtaining a performance competitive with state-of-the-art
+on the semi-supervised SVHN and CIFAR10 tasks.
 \end{abstract}
 
 \section{Introduction}
 
-Deep directed generative models have emerged as a powerful technique for
-modeling complex high-dimensional datasets. These models permit fast ancestral
-sampling, but are often challenging to learn due to the complexities of
-inference. Recently, two classes of algorithms have emerged as effective for
-learning deep directed generative models: 1) Techniques based on the
-Variational Autoencoder (VAE) that aim to improve the quality and efficiency of
-inference by learning an inference
-machine~\citep{kingma2013auto,rezende2014stochastic}, and 2) techniques based
-on Generative Adversarial Networks (GANs) that bypass inference
-altogether~\citep{goodfellow2014generative}. While both techniques are provably
-consistent given infinite capacity and data, they learn very different
-generative models on typical datasets.
+Deep directed generative model has emerged as a powerful framework for modeling
+complex high-dimensional datasets. These models permit fast ancestral sampling,
+but are often challenging to learn due to the complexities of inference.
+Recently, three classes of algorithms have emerged as effective for learning
+deep directed generative models: 1) techniques based on the Variational
+Autoencoder (VAE) that aim to improve the quality and efficiency of inference by
+learning an inference machine~\citep{kingma2013auto,rezende2014stochastic}, 2)
+techniques based on Generative Adversarial Networks (GANs) that bypass inference
+altogether~\citep{goodfellow2014generative} and 3) autoregressive
+approaches~\citep{van2016pixel,van2016pixelcnn,van2016wavenet} that forego
+latent representations and instead model the relationship between input
+variables directly. While all techniques are provably consistent given infinite
+capacity and data, in practice they learn very different kinds of generative
+models on typical datasets.
 
-VAE-based techniques aim to maximize the log-likelihood of the observed data
-$\bm{x}$ by introducing a set of stochastic latent variables $\bm{z}$ and
-marginalizing them out of the joint distribution $p(\bm{x}, \bm{z})$. While
-exact marginalization of the latent variables is generally intractable, the VAE
-introduces an approximate posterior $q(\bm{z} \mid \bm{x})$ and maximizes a
-variational lower bound on the log-likelihood of $p(\bm{x})$. Several VAE
-variants have been proposed. One approach improves the quality of the
-approximate posterior using hybrid Monte Carlo \citep{salimans2014markov}.
-Another approach, known as the DRAW model \citep{gregor2015draw}, subdivides
-the inference and generation processes into multiple sequential steps through
-the use of recurrent neural networks and an attention mechanism.
-
-Despite the impressive progress of VAE-based approaches for learning deep
-directed generative models, they still suffer from a well-recognized issue of
-the maximum likelihood training paradigm. Models trained to maximize likelihood
-of the training data tend to be conservative, distributing probability mass
-diffusely over the data space~\citep{Theis2015}. In the case of learning
-generative models of images, this results in almost all probability mass lying
-outside the relatively restrictive subset of pixel space occupied by natural
-images. The direct consequence of this is that image samples from VAE-trained
-models tend to be
-blurry~\citep{goodfellow2014generative,larsen2015autoencoding}.
-
-On the other hand, GAN-based techniques are trained via an adversarial process
-that does not appear to suffer from the same probability mass diffusion problem
-as does maximum likelihood. In the GAN paradigm, a discriminative network is
-trained to distinguish between the empirical distribution and samples produced
-by a generative network. Meanwhile, the generative network is trained to
-produce samples intended to fool the discriminator into classifying them as
-true samples from the training set.  While the adversarial setting presents a
-challenging (and often unstable) training paradigm, it results in a generative
-network capable of producing samples that exceed those of the best VAE
-techniques~\citep{radford2015unsupervised,larsen2015autoencoding}. Recent
-GAN-based convolutional~\citep{radford2015unsupervised,denton2015deep} and
-recurrent~\citep{im2016generating} generative networks have been able to achieve
-dramatic improvements in the quality of synthetic images.
-
-While GANs learn a generative model that produces higher-quality samples, only
-the VAE-based models learn an efficient mechanism for inference. For
-applications such as semi-supervised learning, GANs are insufficient as they do
-not provide an efficient inference mechanism.  Recently, efforts have aimed to
-bridge the gap between VAEs and GANs, to learn generative models with
-higher-quality samples while learning an efficient inference
+VAE-based techniques learn an approximate inference mechanism that allows reuse
+for various auxiliary tasks, such as semi-supervised learning or inpainting.
+They do however suffer from a well-recognized issue of the maximum likelihood
+training paradigm when combined with a conditional independence assumption on
+the output given the latent variables: they tend to distribute probability mass
+diffusely over the data space~\citep{Theis2015}. The direct consequence of this
+is that image samples from VAE-trained models tend to be
+blurry~\citep{goodfellow2014generative,larsen2015autoencoding}. Autoregressive
+models produce outstanding samples but do so at the cost of slow sampling speed
+and foregoing the learning of an abstract representation of the data. GAN-based
+approaches represent a good compromise: they learn a generative model that
+produces higher-quality samples than the best VAE
+techniques~\citep{radford2015unsupervised,larsen2015autoencoding} without
+sacrificing sampling speed and also make use of a latent representation in the
+generation process. However, GANs lack an efficient inference mechanism, which
+prevents them from reasoning about data at an abstract level. For instance, GANs
+don't allow the sort of neural photo manipulations showcased
+in~\citep{brock2016neural}. Recently, efforts have aimed to bridge the gap
+between VAEs and GANs, to learn generative models with higher-quality samples
+while learning an efficient inference
 network~\citep{larsen2015autoencoding,lamb2016discriminative,
 dosovitskiy2016generating}. While this is certainly a promising research
 direction, VAE-GAN hybrids tend to manifest a compromise of the strengths and
 weaknesses of both approaches.
 
 In this paper, we propose a novel approach  to integrate efficient inference
-with the GAN framework. Our approach, called Adversarially Learned Inference
+within the GAN framework. Our approach, called Adversarially Learned Inference
 (ALI), casts the learning of both an inference machine (or encoder) and a deep
 directed generative model (or decoder) in an GAN-like adversarial framework. A
 discriminator is trained to discriminate joint samples of the data and the
 corresponding latent variable from the encoder (or approximate posterior) from
-joint samples from the decoder. In opposition to the discriminator, we have two
-generative models, the encoder and the decoder, trained together to fool the
-discriminator.
+joint samples from the decoder while in opposition, the encoder and the decoder
+are trained together to fool the discriminator. Not only are we asking the
+discriminator to distinguish synthetic samples from real data, but we are
+requiring it to distinguish between two joint distributions over the data space
+and the latent variables.
 
-GAN is an example of how one can leverage highly effective discriminative
-training techniques in service of learning deep generative networks. Here, we
-are effectively doubling down on the gambit that we can exploit discriminative
-training. Not only are we asking the discriminator to distinguish synthetic
-samples from real data, but we are requiring it to distinguish between two
-joint distributions over the data space and the latent variables.
-
-With experiments on a toy task, the Street View House Numbers (SVHN) dataset
-\citep{netzer2011reading}, the CIFAR-10 object recognition dataset \citep{krizhevsky2009learning}, the
-CelebA face dataset~\citep{liu2015deep} and a downsampled version of the
-ImageNet dataset~\citep{russakovsky2015imagenet}, we show qualitatively that we
-maintain the high sample fidelity associated with the GAN framework, while
-gaining the ability to perform efficient inference.
+With experiments on the Street View House Numbers (SVHN) dataset
+\citep{netzer2011reading}, the CIFAR-10 object recognition dataset
+\citep{krizhevsky2009learning}, the CelebA face dataset~\citep{liu2015deep} and
+a downsampled version of the ImageNet dataset~\citep{russakovsky2015imagenet},
+we show qualitatively that we maintain the high sample fidelity associated with
+the GAN framework, while gaining the ability to perform efficient inference. We
+show that the learned representation is useful for auxiliary tasks by achieving
+results competitive with the state-of-the-art on the semi-supervised SVHN and
+CIFAR10 tasks.
 
 \section{Adversarially learned inference}
 
@@ -237,7 +183,7 @@ distribution, such as the standard Normal distribution $p(\bm{z}) =
 ALI's objective is to match the two joint distributions. If this is achieved,
 then we are ensured that all marginals match and all conditional distributions
 also match. In particular, we are assured that the conditional $q(\bm{z} \mid
-\bm{x})$ matches the posterior $q(\bm{z} \mid \bm{x})$.
+\bm{x})$ matches the posterior $p(\bm{z} \mid \bm{x})$.
 
 In order to match the joint distributions, an adversarial game is played. Joint
 pairs $(\bm{x}, \bm{z})$ are drawn either from $q(\bm{x}, \bm{z})$ or
@@ -259,13 +205,28 @@ The value function describing the game is given by:
 \end{split}
 \end{equation}
 
-Sampling from $q(\bm{z} \mid \bm{x})$ amounts to drawing an $\bm{x}$ from the
-data distribution and propagating the sample through the encoder network
-$\left(\bm{\mu}_z,\bm{\sigma}_z\right) = G_z(\bm{x})$, then generating
-$\hat{\bm{z}} \sim \mathcal{N}\left(\bm{\mu}_z,\bm{\sigma}_z\right)$. Sampling
-from $p(\bm{x} \mid \bm{z})$ amounts to sampling from $p(\bm{z}) =
-\mathcal{N}\left(\bm{0},\bm{I}\right)$ and propagating the sample through the
-decoder network to recover $\tilde{\bm{x}}$.
+An attractive property of adversarial approaches is that they do not require
+that the conditional densities can be computed; they only require that they can
+be sampled from in a way that allows gradient backpropagation. In the case of
+ALI, this means that gradients should propagate from the discriminator network
+to the encoder and decoder networks.
+
+This can be done using the the reparametrization trick
+\citep{kingma2013fast,bengio2013deep,bengio2013estimating}. Instead of sampling
+directly from the desired distribution, the random variable is computed as a
+deterministic transformation of some noise such that its distribution is the
+desired distribution. For instance, if $q(z \mid x) = \mathcal{N}(\mu(x),
+\sigma^2(x)I)$, one can draw samples by computing
+\begin{equation}
+    z = \mu(x) + \sigma(x) \odot \epsilon, \quad
+    \epsilon \sim \mathcal{N}(0, I).
+\end{equation}
+
+More generally, one can employ a change of variable of the form
+\begin{equation}
+    v = f(u, \epsilon)
+\end{equation}
+where $\epsilon$ is some random source of noise.
 
 The discriminator is trained to distinguish between samples from the encoder
 $(\bm{x},\hat{\bm{z}}) \sim q(\bm{x}, \bm{z})$ and samples from the decoder
@@ -331,27 +292,6 @@ ways:
 		q(\bm{x})$ and $\tilde{\bm{x}} \sim p(\bm{x})$.
 \end{itemize}
 
-
-\subsection{Reparametrization trick}
-In order for the gradient to propagate from the discriminator network to the
-encoder and decoder networks, the gradient needs to flow through the sampling
-processes $\hat{\bm{z}} \sim q(\bm{z} \mid \bm{x})$ and $\tilde{\bm{x}} \sim
-p(\bm{x} \mid \bm{z})$.
-
-To achieve this, the reparametrization trick
-\citep{kingma2013fast,bengio2013deep,bengio2013estimating} is employed. Instead
-of sampling directly from the desired distribution, the random variable is
-computed as a deterministic transformation of some noise such that its
-distribution is the desired distribution.
-
-For instance, if $q(z \mid x) = \mathcal{N}(\mu(x), \sigma^2(x)I)$, one can
-draw samples by computing
-
-\begin{equation}
-    z = \mu(x) + \sigma(x) \odot \epsilon, \quad
-    \epsilon \sim \mathcal{N}(0, I).
-\end{equation}
-
 \subsection{Generator value function}
 
 As with GANs, when ALI's discriminator gets too far ahead, its generator may
@@ -384,27 +324,6 @@ discrete latent variables.
     \centering
     \begin{subfigure}[t]{0.49\textwidth}
         \centering
-        \includegraphics[height=\figureHeight]{cifar10_samples.png}
-        \caption{\label{fig:cifar10_samples} CIFAR10 samples.}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[height=\figureHeight]{cifar10_reconstructions.png}
-        \caption{\label{fig:cifar10_reconstructions} CIFAR10
-          reconstructions.}
-    \end{subfigure}
-    \caption{\label{fig:cifar10_images} Samples and reconstructions on the
-        CIFAR10 dataset. For the reconstructions, odd columns are
-        original samples from the validation set and even columns are
-        corresponding reconstructions (e.g., second column contains
-        reconstructions of the first column's validation set samples).}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
         \includegraphics[height=\figureHeight]{svhn_samples.png}
         \caption{\label{fig:svhn_samples} SVHN samples.}
     \end{subfigure}
@@ -417,7 +336,8 @@ discrete latent variables.
     \caption{\label{fig:svhn_images} Samples and reconstructions on the SVHN
         dataset. For the reconstructions, odd columns are
         original samples from the validation set and even columns are
-        corresponding reconstructions.}
+        corresponding reconstructions (e.g., second column contains
+        reconstructions of the first column's validation set samples).}
 \end{figure}
 
 \begin{figure}[p]
@@ -435,6 +355,26 @@ discrete latent variables.
     \end{subfigure}
     \caption{\label{fig:celeba_images} Samples and reconstructions on the CelebA
         dataset. For the reconstructions, odd columns are
+        original samples from the validation set and even columns are
+        corresponding reconstructions.}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[height=\figureHeight]{cifar10_samples.png}
+        \caption{\label{fig:cifar10_samples} CIFAR10 samples.}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[height=\figureHeight]{cifar10_reconstructions.png}
+        \caption{\label{fig:cifar10_reconstructions} CIFAR10
+          reconstructions.}
+    \end{subfigure}
+    \caption{\label{fig:cifar10_images} Samples and reconstructions on the
+        CIFAR10 dataset. For the reconstructions, odd columns are
         original samples from the validation set and even columns are
         corresponding reconstructions.}
 \end{figure}
@@ -475,35 +415,29 @@ discrete latent variables.
 \subsection{Invertibility}
 \label{sec:invertibility}
 \begin{prop}
-    At optimality, the encoder and decoder are inverses of one another.
+    Assuming optimal discriminator $D$ and generator $G$. If the encoder
+    $G_{\bm{x}}$ is deterministic, then $G_{\bm{x}} = G^{-1}_{\bm{z}}$ and
+    $G_{\bm{z}} = G^{-1}_{\bm{x}}$ almost everywhere.
 \end{prop}
-\begin{proof}
-    The proof is given in \citep{donahue2016adversarial}, in which the authors
+\begin{sketchproof}
+    Consider the event $R_{\epsilon} = \{\bm{x} : \Vert x - (G_{\bm{x}} \circ
+    G_{\bm{z}})(\bm{x})) \Vert > \epsilon\}$ for some positive $\epsilon$. This
+    set can be seen as a section of the $(\bm{x}, \bm{z})$ space 	over the
+    elements $\bm{z}$ such that $\bm{z} = G_{\bm{z}}(x)$. The generator being
+    optimal, the probabilities of $R_{\epsilon}$ under $p(\bm{x}, \bm{z})$ and
+    $q(\bm{x}, \bm{z})$ are equal.  Now $p(\bm{x} \mid \bm{z}) = \delta_{x -
+    G_{x}(z)}$, where $\delta$ is the Dirac delta distribution.  This is enough
+    to show that there are no $x$ satisfying the event $R_{\epsilon}$ and thus
+    $G_{\bm{x}} = G^{-1}_{z}$ almost everywhere.  By symmetry, the same argument
+    can be applied to show that $G_{\bm{z}} = G^{-1}_{\bm{x}}$. \\ The complete
+    proof is given in \citep{donahue2016adversarial}, in which the authors
     independently examine the same model structure under the name Bidirectional
     GAN (BiGAN).
-\end{proof}
-
-\subsection{Multilayer extensions of ALI}
-It is straightforward to extend the ALI framework to multiple stochastic layers,
-i.e.,
-\begin{align}
-    p(\bm{x}, \bm{z}_1,\bm{z}_2,\dots,\bm{z}_L) &= p(\bm{z}_L) p(\bm{z}_{L-1}
-    \mid \bm{z}_L) \cdots p(\bm{z}_{1} \mid \bm{z}_2, \dots, \bm{z}_L)
-    p(\bm{x} \mid \bm{z}_1, \dots, \bm{z}_L) \\
-    q(\bm{x}, \bm{z}_1,\bm{z}_2,\dots,\bm{z}_L) &= q(\bm{x}) p(\bm{z}_{1}
-    \mid \bm{x}) p(\bm{z}_{2} \mid \bm{z}_1, \bm{x}) \cdots
-    p(\bm{z}_{L} \mid \bm{z}_1, \dots, \bm{z}_{L-1}, \bm{x}).
-\end{align}
-In this case, the discriminator takes as input either $(\bm{x},
-\hat{\mathbf{z}}_{1:L}) \sim q(\bm{x}, \mathbf{z}_{1:L})$ or $(\tilde{\bm{x}},
-\mathbf{z}_{1:L}) \sim p(\bm{x}, \mathbf{z}_{1:L})$ and tries to determine
-which joint the samples were drawn from. The generator trains the distributions
-$q(\mathbf{z}_{1:L} \mid \bm{x})$, $p(\mathbf{z}_{1:L})$ and $p(\bm{x} \mid
-\mathbf{z}_{1:L})$ to fool the discriminator.
+\end{sketchproof}
 
 \section{Related Work}
 
-Other recent papers explore hybrid approaches to generative modelling. One such
+Other recent papers explore hybrid approaches to generative modeling. One such
 approach is to relax the probabilistic interpretation of the VAE model by
 replacing either the KL-divergence term or the reconstruction term with
 variants that have better properties. The adversarial autoencoder model
@@ -552,64 +486,49 @@ features' usefulness for auxiliary supervised and semi-supervised tasks.
         reconstructions.}
 \end{figure}
 
-\begin{figure}[t]
-    \centering
-    \includegraphics[height=\figureHeight]{celeba_interpolations.png}
-    \caption{\label{fig:celeba_interpolations} Latent space interpolations on
-        the CelebA validation set. Left and right columns correspond to the
-        original pairs $\mathbf{x}_1$ and $\mathbf{x}_2$, and the columns in
-        between correspond to the decoding of latent representations
-        interpolated linearly from $\mathbf{z}_1$ to $\mathbf{z}_2$.}
-\end{figure}
-
-\begin{table}[t]
-\centering
-\begin{tabular}{@{}llll@{}} \toprule
-Method                                         & Error rate                      \\ \midrule
-KNN (as reported in \citet{zhao2015stacked})   & $77.93\%$                       \\
-TSVM \citep{vapnik1998}                        & $66.55\%$                       \\
-VAE (M1 + M2) \citep{kingma2014semi}           & $36.02\%$                       \\
-SWWAE without dropout \citep{zhao2015stacked}  & $27.83\%$                       \\
-SWWAE with dropout \citep{zhao2015stacked}     & $23.56\%$                       \\
-DCGAN + L2-SVM \citep{radford2015unsupervised} & $22.18\% (\pm 1.13\%)$          \\
-{\bf SDGM \citep{maaloe2016auxiliary}}         & $\mathbf{16.61\% (\pm 0.24\%)}$ \\ \midrule
-ALI (ours)                                     & $19.14\% (\pm 0.50\%)$          \\
-\bottomrule
-\end{tabular}
-\vspace{0.2cm}
-\caption{\label{tab:semi-supervised} SVHN test set error rates for
-	semi-supervised learning. 1000 training examples were used.}
-\end{table}
-
 We applied ALI to four different datasets, namely CIFAR10
 \citep{krizhevsky2009learning}, SVHN \citep{netzer2011reading}, CelebA
-\citep{liu2015deep} and a center-cropped, $64 \times 64$ version if the ImageNet
+\citep{liu2015deep} and a center-cropped, $64 \times 64$ version of the ImageNet
 dataset \citep{russakovsky2015imagenet}.\footnote{
     The code for all experiments can be found at
     \url{https://github.com/IshmaelBelghazi/ALI}. Readers can also consult the
     accompanying website at \url{https://ishmaelbelghazi.github.io/ALI}.}
 
-In addition to these larger scale experiments, we were interested in studying
-how modeling the joint distribution impacted ALI in its ability to capture the
-underlying data density. To this end, we applied ALI to a 2-D synthetic
-dataset.
-
-The use of batch normalization \citep{ioffe2015batch} in all layers (except the
-output layer) of $G_z(\bm{x})$ and $G_x(\bm{z})$ was crucial to the generator's
-success in fooling the discriminator. We also found that in order to stabilize
-training, batch normalization should not be applied in layers of the
-discriminator which are influenced by $\bm{z}$.
-
 Transposed convolutions are used in $G_x(\bm{z})$. This operation corresponds
 to the transpose of the matrix representation of a convolution, i.e., the
 gradient of the convolution with respect to its inputs. For more details about
-transposed convolutions, see \citet{dumoulin2016guide}.
+transposed convolutions and related operations,
+see~\citet{dumoulin2016guide,shi2016deconvolution,odena2016deconvolution}.
 
-\subsection{Samples}
-For each dataset, samples are presented (Figures \ref{fig:cifar10_samples},
-\ref{fig:svhn_samples}, \ref{fig:celeba_samples} and
-\ref{fig:tiny_imagenet_samples}). They exhibit the same image fidelity as samples
-from other adversarially-trained models.
+\subsection{Samples and Reconstructions}
+For each dataset, samples are presented (Figures \ref{fig:svhn_samples},
+\ref{fig:celeba_samples} \ref{fig:cifar10_samples} and
+\ref{fig:tiny_imagenet_samples}). They exhibit the same image fidelity as
+samples from other adversarially-trained models.
+
+We also qualitatively evaluate the fit between the conditional distribution
+$q(\bm{z} \mid \bm{x})$ and the posterior distribution $p(\bm{z} \mid \bm{x})$
+by sampling $\hat{\bm{z}} \sim q(\bm{z} \mid \bm{x})$ and $\hat{\bm{x}} \sim
+p(\bm{x} \mid \bm{z} = \hat{\bm{z}})$ (Figures \ref{fig:svhn_reconstructions},
+\ref{fig:celeba_reconstructions}, \ref{fig:cifar10_reconstructions} and
+\ref{fig:tiny_imagenet_reconstructions}). This corresponds to reconstructing the
+input in a VAE setting. Note that the ALI training objective does {\em not}
+involve an explicit reconstruction loss.
+
+We observe that reconstructions are not always faithful reproductions of the
+inputs.  They retain the same crispness and quality characteristic to
+adversarially-trained models, but oftentimes make mistakes in capturing exact
+object placement, color, style and (in extreme cases) object identity. The
+extent to which reconstructions deviate from the inputs varies between datasets:
+on CIFAR10, which arguably constitutes a more complex input distribution, the
+model exhibits less faithful reconstructions. This leads us to believe that poor
+reconstructions are a sign of underfitting.
+
+This failure mode represents an interesting departure from the bluriness
+characteristic to the typical VAE setup. We conjecture that in the underfitting
+regime, the latent variable representation learned by ALI is potentially more
+invariant to less interesting factors of variation in the input and do not
+devote model capacity to capturing these factors.
 
 \subsection{Latent space interpolations}
 As a sanity check for overfitting, we look at latent space interpolations
@@ -619,77 +538,93 @@ them into $\mathbf{z}_1$ and $\mathbf{z}_2$ by sampling from the encoder. We
 then linearly interpolate between $\mathbf{z}_1$ and $\mathbf{z}_2$ and pass the
 intermediary points through the decoder to plot the input-space interpolations.
 
-We observe smooth transitions between pairs of example, and intermediary images
+We observe smooth transitions between pairs of examples, and intermediary images
 remain believable. This is an indicator that ALI is not concentrating its
 probability mass exclusively around training examples, but rather has learned
 latent features that generalize well.
 
-\subsection{Reconstructions}
-We also qualitatively evaluate the fit between the conditional distribution
-$q(\bm{z} \mid \bm{x})$ and the posterior distribution $p(\bm{z} \mid \bm{x})$
-by sampling $\hat{\bm{z}} \sim q(\bm{z} \mid \bm{x})$ and $\hat{\bm{x}} \sim
-p(\bm{x} \mid \bm{z} = \hat{\bm{z}})$ (Figures
-\ref{fig:cifar10_reconstructions}, \ref{fig:svhn_reconstructions},
-\ref{fig:celeba_reconstructions} and \ref{fig:tiny_imagenet_reconstructions}).
-This corresponds to reconstructing the input in a VAE setting. Interestingly,
-even though reconstruction quality is not explictly enforced in the objective
-function, the trained models achieve good reconstruction in practice, which
-suggests that the conditional $q(\bm{z} \mid \bm{x})$ is indeed a good
-approximation of the posterior $p(\bm{z} \mid \bm{x})$.
-
-Reconstructions in ALI are quite different from reconstructions in
-VAE-like models. Instead of focusing on achieving a pixel-perfect
-reconstruction, ALI produces reconstructions that often faithfully
-represent more abstract features of the input images, while   
- making mistakes in capturing exact object placement, color, style and
-(in extreme cases) object identity. These reconstructions suggest that the
-ALI latent variable representations are potentially more invariant to these less
-interesting factors of variation in the input and do not devote model
-capacity to capturing these factors.
-
-\subsection{Semi-supervised learning}
-The fact that ALI's latent representation tends to focus on semantic information
-at the expense of low-level details leads us to believe that ALI may be well
-suited to semi-supervised tasks. We empirically verify this by achieving a
-competitive performance on the semi-supervised SVHN classification task.
-Results are presented in \autoref{tab:semi-supervised}. The SDGM's performance
-is achieved via a carefully designed two-layer architecture that explicitly
-takes label information into account in learning the representation. We expect
-that ALI would also gain by taking account of label information in learning the
-representation.
-
-We follow the procedure outlined by \citet{radford2015unsupervised}. We train an
-L2-SVM on the learned representations of a model trained on SVHN. The last three
-hidden layers of the encoder as well as its output are concatenated to form a
-8960-dimensional feature vector. A 10,000 example held-out validation set is
-taken from the training set and is used for model selection. The SVM is trained
-on 1000 examples taken at random from the remainder of the training set. The
-test error rate is measured for 100 different SVMs trained on different random
-1000-example training sets, and the average error rate is measured along with
-its standard deviation.
-
-\subsection{Comparison with GAN on a toy task}
-
-Figure \ref{fig:mixture} shows a comparison of the ability of GAN and ALI to fit
-a simple 2-dimensional synthetic gaussian mixture dataset. The decoder and
-discriminator networks are matched between ALI and GAN, and the hyperparameters
-are the same. In this experiment, ALI converges faster than GAN and to a better
-solution.  Despite the relative simplicity of the data distribution, GAN
-partially failed to converge to the distribution, ignoring the central mode.
-
-The toy task also exhibits nice properties of the features learned by ALI: when
-mapped to the latent space, data samples cover the whole prior, and they get
-clustered by mixture components, with a clear separation between each mode.
-
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\textwidth]{mixture_plot.pdf}
-    \caption{\label{fig:mixture} Comparison of ALI and GAN on a synthetic
-      gaussian mixture dataset. In the top row, from left to right: data
-      samples, ALI reconstructions, ALI samples, GAN samples. In the bottom row,
-      from left to right: ALI encodings, prior samples. The nine mixture modes,
-      their ALI encodings and their ALI reconstructions have been color-coded
-      to facilitate visualization.}
+    \includegraphics[width=\textwidth]{celeba_interpolations.png}
+    \caption{\label{fig:celeba_interpolations} Latent space interpolations on
+        the CelebA validation set. Left and right columns correspond to the
+        original pairs $\mathbf{x}_1$ and $\mathbf{x}_2$, and the columns in
+        between correspond to the decoding of latent representations
+        interpolated linearly from $\mathbf{z}_1$ to $\mathbf{z}_2$. Unlike other
+        adversarial approaches like DCGAN~\citep{radford2015unsupervised}, ALI
+        allows one to interpolate between actual data points.}
+\end{figure}
+
+\subsection{Semi-supervised learning}
+
+We investigate the usefulness of the latent representation learned by ALI
+through semi-supervised benchmarks on SVHN and CIFAR10. We adapt the
+discriminative model proposed in \citet{Salimans2016gan} to take both $x$ and
+$z$ as input.
+
+Interestingly, \citet{Salimans2016gan} found that they required an alternative
+training strategy for the generator where it tries to match first-order
+statistics in the discriminator's intermediate activations with respect to the
+data distribution (they refer to this as {\em feature matching}). We found that
+ALI did not require feature matching to achieve comparable results. We achieve
+results competitive with the state-of-the-art, as shown in
+\autoref{tab:semi-supervised}.
+
+\begin{table}[ht]
+\caption{\label{tab:semi-supervised} SVHN and CIFAR10 test set missclassification rate for
+	semi-supervised learning using different numbers of trained labeled examples.}
+\centering
+\scalebox{0.75}{
+\begin{tabular}{@{}ll|llll@{}} \toprule
+ & \textbf{SVHN} & \multicolumn{4}{|c}{\textbf{CIFAR10}} \\  
+Number of labeled examples   & 1000  & 1000 & 2000 & 4000 & 8000    \\ \midrule
+VAE (M1 + M2) \citep{kingma2014semi}           & $36.02$  & & & &   \\
+SWWAE with dropout \citep{zhao2015stacked}     & $23.56$  & & & &   \\
+DCGAN + L2-SVM \citep{radford2015unsupervised} & $22.18$  & & & &   \\
+SDGM \citep{maaloe2016auxiliary}         	   & $16.61$ \\ \midrule
+Ladder network \citep{ladder2015}              &        &      &      & $20.40$ &   \\
+CatGAN \citep{catgan2015}                      &        &      &      & $19.58$ &   \\ \midrule
+\textbf{GAN (feature matching) \citep{Salimans2016gan}} & $\mathbf{8.11 \pm 1.3}$ & $\mathbf{21.83 \pm 2.01}$ & $\mathbf{19.61 \pm 2.09}$ & $\mathbf{18.63 \pm 2.32}$ & $\mathbf{17.72 \pm 1.82}$ \\ 
+\textbf{ALI (ours, no feature matching)} & $\textbf{7.3}$ & $\textbf{20.88}$ & $\textbf{20.28}$ & $\textbf{18.3}$ & $\textbf{17.77}$ \\
+\bottomrule
+\end{tabular}
+}
+\vspace{0.2cm}
+\end{table}
+
+We are still investigating the differences between ALI and GAN with respect to
+feature matching, but we conjecture that the latent representation learned by
+ALI is better untangled with respect to the classification task and that it
+generalizes better.
+
+\subsection{Conditional Generation}
+We extend ALI to match a conditional distribution. Let $\bm{y}$ represent a
+fully observed conditioning variable. In this setting, the value function reads
+\begin{equation}
+\label{eq:conditional_value_function}
+\min_G \max_D V(D, G) = \mathbb{E}_{q(\bm{x})\, p(\bm{y})}[\log(D(\bm{x}, G_z(\bm{x}, \bm{y}), \bm{y}))] + \mathbb{E}_{p(\bm{z})\, p(\bm{y})}[\log(1 - D(G_x(\bm{z}, \bm{y}), \bm{z}, \bm{y}))]
+\end{equation}
+We apply the conditional version of ALI to CelebA using the dataset's 40 binary
+attributes. The attributes are linearly embedded in the encoder, decoder and
+discriminator. We observe how a single element of the latent space $z$ changes
+with respect to variations in the attributes vector $y$. Conditional samples are
+shown in \autoref{fig:celeba_conditional_sequence}.
+
+\begin{figure}[htb!]
+    \centering
+    \includegraphics[width=\textwidth]{celeba_conditional_sequence.png}
+    \caption{\label{fig:celeba_conditional_sequence} Conditional generation
+    sequence. We sample a single fixed latent code $z$. Each row has a subset of
+    attributes that are held constant across columns. The attributes are male,
+    attractive, young for row I; male, attractive, older for row II; female,
+    attractive, young for row III; female, attractive, older for Row IV.
+    Attributes are then varied uniformly over rows across all columns in the
+    following sequence: (b) black hair; (c) brown hair; (d) blond hair; (e)
+    black hair, wavy hair; (f) blond hair, bangs; (g) blond hair, receding
+    hairline; (h) blond hair, balding; (i) black hair, smiling; (j) black hair,
+    smiling, mouth slightly open; (k) black hair, smiling, mouth slightly open,
+    eyeglasses; (l) black hair, smiling, mouth slightly open, eyeglasses,
+    wearing hat. }
 \end{figure}
 
 \section{Conclusion}
@@ -698,10 +633,9 @@ We introduced the adversarially learned inference (ALI) model, which jointly
 learns a generation network and an inference network using an adversarial
 process. The model learns mutually coherent inference and generation networks,
 as exhibited by its reconstructions. The induced latent variable mapping is
-shown to be useful, achieving competitive results on semi-supervised SVHN house
-number classification.
+shown to be useful, achieving results competitive with the state-of-the-art
+on the semi-supervised SVHN and CIFAR10 tasks.
 
-\iftoggle{draft}{}{%
 \subsubsection*{Acknowledgments}
 
 The authors would like to acknowledge the support of the following agencies for
@@ -711,12 +645,10 @@ Canada. We would also like to thank the developers of Theano
 \citep{van2015blocks}, which were used extensively for the paper. Finally, we
 would like to thank Yoshua Bengio, David Warde-Farley, Yaroslav Ganin and
 Laurent Dinh for their valuable feedback.
-}
 
 \bibliography{bibliography}
-\bibliographystyle{natbib}
+\bibliographystyle{iclr2017_conference}
 
-\iftoggle{arxiv}{%
 \clearpage
 
 \appendix
@@ -763,7 +695,7 @@ Leaky ReLU slope, maxout pieces       & \multicolumn{6}{@{}l@{}}{0.1, 2}        
 Weight, bias initialization  & \multicolumn{6}{@{}l@{}}{Isotropic gaussian ($\mu = 0$, $\sigma = 0.01$), Constant($0$)} \\ \bottomrule
 \end{tabular}
 \vspace{0.2cm}
-\caption{\label{tab:cifar10_description} CIFAR10 model hyperparameters. Maxout
+\caption{\label{tab:cifar10_description} CIFAR10 model hyperparameters (unsupervised). Maxout
     layers \citep{goodfellow2013maxout} are used in the discriminator.}
 \end{table}
 
@@ -808,7 +740,7 @@ Leaky ReLU slope       & \multicolumn{6}{@{}l@{}}{0.01}                         
 Weight, bias initialization  & \multicolumn{6}{@{}l@{}}{Isotropic gaussian ($\mu = 0$, $\sigma = 0.01$), Constant($0$)} \\ \bottomrule
 \end{tabular}
 \vspace{0.2cm}
-\caption{\label{tab:svhn_description} SVHN model hyperparameters.}
+\caption{\label{tab:svhn_description} SVHN model hyperparameters (unsupervised).}
 \end{table}
 
 \begin{table}[h]
@@ -850,7 +782,7 @@ Leaky ReLU slope       & \multicolumn{6}{@{}l@{}}{0.02}                         
 Weight, bias initialization  & \multicolumn{6}{@{}l@{}}{Isotropic gaussian ($\mu = 0$, $\sigma = 0.01$), Constant($0$)} \\ \bottomrule
 \end{tabular}
 \vspace{0.2cm}
-\caption{\label{tab:celeba_description} CelebA model hyperparameters.}
+\caption{\label{tab:celeba_description} CelebA model hyperparameters (unsupervised).}
 \end{table}
 
 \begin{table}[h]
@@ -899,7 +831,7 @@ Leaky ReLU slope       & \multicolumn{6}{@{}l@{}}{0.01}                         
 Weight, bias initialization  & \multicolumn{6}{@{}l@{}}{Isotropic gaussian ($\mu = 0$, $\sigma = 0.01$), Constant($0$)} \\ \bottomrule
 \end{tabular}
 \vspace{0.2cm}
-\caption{\label{tab:tiny_imagenet_description} Tiny ImageNet model hyperparameters.}
+\caption{\label{tab:tiny_imagenet_description} Tiny ImageNet model hyperparameters (unsupervised).}
 \end{table}
 
 \clearpage
@@ -977,6 +909,5 @@ maintain the illusion of a Circle of Infinite Painters made of a single artistic
 duo.
 
 Will the Circle reach this ideal, or will it be unmasked by Mr. Discriminator?
-}{}
 
 \end{document}
