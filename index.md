@@ -47,8 +47,8 @@ not wasted to model trivial factors of variation in the input, and 2) the
 learned features are more or less invariant to these trivial factors of
 variation, which is what is expected of good feature learning.
 
-These strenghts are showcased via the semi-supervised learning task on SVHN,
-where ALI achieves a performance competitive with other recent approaches.
+These strenghts are showcased via the semi-supervised learning tasks on SVHN and
+CIFAR10, where ALI achieves a performance competitive with state-of-the-art.
 
 <a name="gan_intro"></a>
 
@@ -342,9 +342,10 @@ ALI achieves a performance competitive with state-of-the-art on the
 semi-supervised SVHN and CIFAR10 tasks. We adapt the discriminative model
 proposed in Salimans et al. (2016) [^1] to take both x and z as input.
 
-| SVHN                                |                |
+### SVHN
+
+| Number of labeled examples          | 1000           |
 | ----------------------------------- | -------------- |
-| **Number of labeled examples**      | **1000**       |
 | VAE (M1 + M2) [^1]                  | 36.02          |
 | SWWAE with dropout [^2]             | 23.56          |
 | DCGAN + L2-SVM [^3]                 | 22.18          |
@@ -352,9 +353,10 @@ proposed in Salimans et al. (2016) [^1] to take both x and z as input.
 | **GAN (feature matching)** [^7]     | **8.11 ± 1.3** |
 | **ALI (ours, no feature matching)** | **7.3**        |
 
-| CIFAR10                             |                  |                  |                  |                  |
+### CIFAR10
+
+| Number of labeled examples          | 1000             | 2000             | 4000             | 8000             |
 | ----------------------------------- | ---------------- | ---------------- | ---------------- | ---------------- |
-| **Number of labeled examples**      | **1000**         | **2000**         | **4000**         | **8000**         |
 | Ladder network [^5]                 |                  |                  | 20.40            |                  |
 | CatGAN [^6]                         |                  |                  | 19.58            |                  |
 | **GAN (feature matching)** [^7]     | **21.83 ± 2.01** | **19.61 ± 2.09** | **18.63 ± 2.32** | **17.72 ± 1.82** |
