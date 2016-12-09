@@ -16,8 +16,8 @@ title: {{ site.name }}
     * [CelebA](#celeba)
     * [Tiny ImageNet](#tiny_imagenet)
     * [Latent space interpolations](#interpolations)
+    * [Conditional generation](#conditional)
     * [Semi-supervised learning](#semi_supervised)
-    * [Comparison with GAN on a toy task](#toy_task)
 * [Conclusion](#conclusion)
 
 ---
@@ -297,53 +297,79 @@ remain believable. This is an indicator that ALI is not concentrating its
 probability mass exclusively around training examples, but rather has learned
 latent features that generalize well.
 
+<a name="conditional"></a>
+
+## Conditional generation
+
+ALI can also be used for conditional generative modeling by providing the
+encoder, decoder and discriminator networks with a conditioning variable
+\\(\\mathbf{y}\\).
+
+We apply the conditional version of ALI to CelebA using the dataset’s 40 binary
+attributes. The attributes are linearly embedded in the encoder, decoder and
+discriminator. We observe how a single element of the latent space z changes
+with respect to variations in the attributes vector \\(\\mathbf{y}\\).
+
+![Conditional generation]({{ site.baseurl }}/assets/celeba_conditional_sequence.png)
+
+The row attributes are
+
+* I: male, attractive, young
+* II: male, attractive, older
+* III: female, attractive, young
+* IV: female, attractive, older
+
+The column attributes are
+
+* a: unchanged
+* b: black hair
+* c: brown hair
+* d: blond hair
+* e: black hair, wavy hair
+* f: blond hair, bangs
+* g: blond hair, receding hairline
+* h: blond hair, balding
+* i: black hair, smiling
+* j: black hair, smiling, mouth slightly open
+* k: black hair, smiling, mouth slightly open, eyeglasses
+* l: black hair, smiling, mouth slightly open, eyeglasses, wearing hat
+
 <a name="semi_supervised"></a>
 
 ## Semi-supervised learning
 
-ALI achieves a competitive performance on the semi-supervised SVHN task. The
-SDGM’s performance is achieved via a carefully designed two-layer architecture
-that explicitly takes label information into account in learning the
-representation. We expect that ALI would also gain by taking account of label
-information in learning the representation.
+ALI achieves a performance competitive with state-of-the-art on the
+semi-supervised SVHN and CIFAR10 tasks. We adapt the discriminative model
+proposed in Salimans et al. (2016) [^1] to take both x and z as input.
 
-We follow the procedure outlined by [DCGAN](https://arxiv.org/abs/1511.06434).
-We train an L2-SVM on the learned representations of a model trained on SVHN.
-The last three hidden layers of the encoder as well as its output are
-concatenated to form a 8960-dimensional feature vector. A 10,000 example
-held-out validation set is taken from the training set and is used for model
-selection. The SVM is trained on 1000 examples taken at random from the
-remainder of the training set. The test error rate is measured for 100 different
-SVMs trained on different random 1000-example training sets, and the average
-error rate is measured along with its standard deviation.
+| SVHN                                |                |
+| ----------------------------------- | -------------- |
+| **Number of labeled examples**      | **1000**       |
+| VAE (M1 + M2) [^1]                  | 36.02          |
+| SWWAE with dropout [^2]             | 23.56          |
+| DCGAN + L2-SVM [^3]                 | 22.18          |
+| SDGM [^4]                           | 16.61          |
+| **GAN (feature matching)** [^7]     | **8.11 ± 1.3** |
+| **ALI (ours, no feature matching)** | **7.3**        |
 
-| Method                     | Error rate                              |
-| ---------------------      | --------------------------------------- |
-| KNN [^1]                   | \\(77.93\\%\\)                          |
-| TSVM [^2]                  | \\(66.55\\%\\)                          |
-| VAE (M1 + M2) [^3]         | \\(36.02\\%\\)                          |
-| SWWAE without dropout [^4] | \\(27.83\\%\\)                          |
-| SWWAE with dropout [^4]    | \\(23.56\\%\\)                          |
-| DCGAN + L2-SVM [^5]        | \\(22.18\\% (\\pm 1.13\\%)\\)           |
-| **SDGM**       [^6]        | \\(\\mathbf{16.61\\% (\\pm 0.24\\%)}\\) |
-| ALI (ours)                 | \\(19.14\\% (\\pm 0.50\\%)\\)           |
+| CIFAR10                             |                  |                  |                  |                  |
+| ----------------------------------- | ---------------- | ---------------- | ---------------- | ---------------- |
+| **Number of labeled examples**      | **1000**         | **2000**         | **4000**         | **8000**         |
+| Ladder network [^5]                 |                  |                  | 20.40            |                  |
+| CatGAN [^6]                         |                  |                  | 19.58            |                  |
+| **GAN (feature matching)** [^7]     | **21.83 ± 2.01** | **19.61 ± 2.09** | **18.63 ± 2.32** | **17.72 ± 1.82** |
+| **ALI (ours, no feature matching)** | **20.88**        | **20.28**        | **18.3**         | **17.77**        |
 
-<a name="toy_task"></a>
+Interestingly, Salimans et al. (2016) found that they required an alternative
+training strategy for the generator where it tries to match first-order
+statistics in the discriminator’s intermediate activations with respect to the
+data distribution (they refer to this as feature matching). We found that ALI
+did not require feature matching to achieve comparable results.
 
-## Comparison with GAN on a toy task
-
-The following figure shows a comparison of the ability of GAN and ALI to fit a
-simple 2-dimensional synthetic gaussian mixture dataset. The decoder and
-discriminator networks are matched between ALI and GAN, and the hyperparameters
-are the same. In this experiment, ALI converges faster than GAN and to a better
-solution. Despite the relative simplicity of the data distribution, GAN
-partially failed to converge to the distribution, ignoring the central mode.
-
-![Comparison with GAN on a toy task]({{ site.baseurl }}/assets/mixture_plot.png)
-
-The toy task also exhibits nice properties of the features learned by ALI: when
-mapped to the latent space, data samples cover the whole prior, and they get
-clustered by mixture components, with a clear separation between each mode.
+We are still investigating the differences between ALI and GAN with respect to
+feature matching, but we conjecture that the latent representation learned by
+ALI is better untangled with respect to the classification task and that it
+generalizes better.
 
 <a name="conclusion"></a>
 
@@ -358,9 +384,12 @@ classification.
 
 ---
 
-[^1]: As reported in Zhao, J., Mathieu, M., Goroshin, R., and Lecun, Y. (2015). Stacked what-where auto-encoders. _arXiv preprint arXiv:1506.02351_.
-[^2]: Vapnik, V. N. (1998). Statistical Learning Theory. Wiley-Interscience.
-[^3]: Kingma, D. P., Mohamed, S., Rezende, D. J., and Welling, M. (2014). Semi-supervised learning with deep generative models. In _Advances in Neural Information Processing Systems_, pages 3581–3589.
-[^4]: Zhao, J., Mathieu, M., Goroshin, R., and Lecun, Y. (2015). Stacked what-where auto-encoders. _arXiv preprint arXiv:1506.02351_.
-[^5]: Radford, A., Metz, L., and Chintala, S. (2015). Unsupervised representation learning with deep convolutional generative adversarial networks. _arXiv preprint arXiv:1511.06434_.
-[^6]: Maaløe, L., Sønderby, C. K., Sønderby, S. K., and Winther, O. (2016). Auxiliary deep generative models. _arXiv preprint arXiv:1602.05473_.
+[^1]: Kingma, D. P., Mohamed, S., Rezende, D. J., and Welling, M. (2014). Semi-supervised learning with deep generative models. In _Advances in Neural Information Processing Systems_, pages 3581–3589.
+[^2]: Zhao, J., Mathieu, M., Goroshin, R., and Lecun, Y. (2015). Stacked what-where auto-encoders. _arXiv preprint arXiv:1506.02351_.
+[^3]: Radford, A., Metz, L., and Chintala, S. (2015). Unsupervised representation learning with deep convolutional generative adversarial networks. _arXiv preprint arXiv:1511.06434_.
+[^4]: Maaløe, L., Sønderby, C. K., Sønderby, S. K., and Winther, O. (2016). Auxiliary deep generative models. _arXiv preprint arXiv:1602.05473_.
+[^5]: Rasmus, A., Valpola, H., Honkala, M., Berglund, M., and Raiko, T. (2015). Semi-supervised learning with ladder network. In _Advances in Neural Information
+Processing Systems_.
+[^6]: Springenberg, J. T. (2015). Unsupervised and semi-supervised learning with categorical generative adversarial networks. _arXiv preprint arXiv:1511.06390_.
+[^7]: Salimans, T., Goodfellow, I. J., Zaremba, W., Cheung, V., Radford, A., and Chen, X. (2016). Improved techniques for training GANs. _arXiv preprint
+  arXiv:1606.03498_.
