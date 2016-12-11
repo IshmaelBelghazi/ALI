@@ -558,9 +558,33 @@ latent features that generalize well.
 \subsection{Semi-supervised learning}
 
 We investigate the usefulness of the latent representation learned by ALI
-through semi-supervised benchmarks on SVHN and CIFAR10. We adapt the
-discriminative model proposed in \citet{Salimans2016gan} to take both $x$ and
-$z$ as input.
+through semi-supervised benchmarks on SVHN and CIFAR10.
+
+We compare with GAN on SVHN by following the procedure outlined in
+\citet{radford2015unsupervised}. We train an L2-SVM on the learned
+representations of a model trained on SVHN. The last three hidden layers of the
+encoder as well as its output are concatenated to form a 8960-dimensional
+feature vector. A 10,000 example held-out validation set is taken from the
+training set and is used for model selection. The SVM is trained on 1000
+examples taken at random from the remainder of the training set. The test error
+rate is measured for 100 different SVMs trained on different random 1000-example
+training sets, and the average error rate is measured along with its standard
+deviation.
+
+Using ALI's inference network as opposed to the discriminator to extract
+features, we achieve a misclassification rate that is roughly $3.00 \pm 0.50\%$
+lower than reported in \citet{radford2015unsupervised}
+(\autoref{tab:semi-supervised-svhn}), which suggests that ALI's inference
+mechanism is beneficial to the semi-supervised learning task.
+
+Next, we investigate ALI's performance when label information is taken into
+account during training. We adapt the discriminative model proposed in
+\citet{Salimans2016gan}. The discriminator takes $x$ and $z$ as input and
+outputs a distribution over $K + 1$ classes, where $K$ is the number of
+categories. When label information is available for $q(x, z)$ samples, the
+discriminator is expected to predict the label. When no label information is
+available, the discriminator is expected to predict $K + 1$ for $p(x, z)$ samples
+and $k \in \{1, \ldots, K\}$ for $q(x, z)$ samples.
 
 Interestingly, \citet{Salimans2016gan} found that they required an alternative
 training strategy for the generator where it tries to match first-order
@@ -568,24 +592,40 @@ statistics in the discriminator's intermediate activations with respect to the
 data distribution (they refer to this as {\em feature matching}). We found that
 ALI did not require feature matching to achieve comparable results. We achieve
 results competitive with the state-of-the-art, as shown in
-\autoref{tab:semi-supervised}.
+Tables \ref{tab:semi-supervised-svhn} and \ref{tab:semi-supervised-cifar10}.
 
 \begin{table}[ht]
-\caption{\label{tab:semi-supervised} SVHN and CIFAR10 test set missclassification rate for
-	semi-supervised learning using different numbers of trained labeled examples.}
+\caption{\label{tab:semi-supervised-svhn} SVHN test set missclassification rate}.
 \centering
 \scalebox{0.75}{
-\begin{tabular}{@{}ll|llll@{}} \toprule
- & \textbf{SVHN} & \multicolumn{4}{|c}{\textbf{CIFAR10}} \\  
-Number of labeled examples   & 1000  & 1000 & 2000 & 4000 & 8000    \\ \midrule
-VAE (M1 + M2) \citep{kingma2014semi}           & $36.02$  & & & &   \\
-SWWAE with dropout \citep{zhao2015stacked}     & $23.56$  & & & &   \\
-DCGAN + L2-SVM \citep{radford2015unsupervised} & $22.18$  & & & &   \\
-SDGM \citep{maaloe2016auxiliary}         	   & $16.61$ \\ \midrule
-Ladder network \citep{ladder2015}              &        &      &      & $20.40$ &   \\
-CatGAN \citep{catgan2015}                      &        &      &      & $19.58$ &   \\ \midrule
-\textbf{GAN (feature matching) \citep{Salimans2016gan}} & $\mathbf{8.11 \pm 1.3}$ & $\mathbf{21.83 \pm 2.01}$ & $\mathbf{19.61 \pm 2.09}$ & $\mathbf{18.63 \pm 2.32}$ & $\mathbf{17.72 \pm 1.82}$ \\ 
-\textbf{ALI (ours, no feature matching)} & $\textbf{7.3}$ & $\textbf{20.88}$ & $\textbf{20.28}$ & $\textbf{18.3}$ & $\textbf{17.77}$ \\
+\begin{tabular}{@{}ll@{}} \toprule
+Model & Misclassification rate \\ \midrule
+VAE (M1 + M2) \citep{kingma2014semi}                    & $36.02$ \\
+SWWAE with dropout \citep{zhao2015stacked}              & $23.56$ \\
+DCGAN + L2-SVM \citep{radford2015unsupervised}          & $22.18$ \\
+SDGM \citep{maaloe2016auxiliary}                        & $16.61$ \\ \midrule
+\textbf{GAN (feature matching) \citep{Salimans2016gan}} & $\mathbf{8.11 \pm 1.3}$ \\
+\textbf{ALI (ours, L2-SVM)}                             & $19.14 \pm 0.50$ \\
+\textbf{ALI (ours, no feature matching)}                & $\textbf{7.3}$ \\
+\bottomrule
+\end{tabular}
+}
+\vspace{0.2cm}
+\end{table}
+
+\begin{table}[ht]
+\caption{\label{tab:semi-supervised-cifar10} CIFAR10 test set missclassification
+    rate for semi-supervised learning using different numbers of trained labeled
+    examples.}
+\centering
+\scalebox{0.75}{
+\begin{tabular}{@{}lllll@{}} \toprule
+Number of labeled examples & 1000 & 2000 & 4000 & 8000 \\
+Model & \multicolumn{4}{c}{Misclassification rate} \\ \midrule
+Ladder network \citep{ladder2015}              &              &      & $20.40$ &   \\
+CatGAN \citep{catgan2015}                      &              &      & $19.58$ &   \\ \midrule
+\textbf{GAN (feature matching) \citep{Salimans2016gan}} & $\mathbf{21.83 \pm 2.01}$ & $\mathbf{19.61 \pm 2.09}$ & $\mathbf{18.63 \pm 2.32}$ & $\mathbf{17.72 \pm 1.82}$ \\
+\textbf{ALI (ours, no feature matching)} & $\textbf{20.88}$ & $\textbf{20.28}$ & $\textbf{18.3}$ & $\textbf{17.77}$ \\
 \bottomrule
 \end{tabular}
 }
