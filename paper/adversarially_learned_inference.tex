@@ -558,7 +558,7 @@ latent features that generalize well.
 We investigate the usefulness of the latent representation learned by ALI
 through semi-supervised benchmarks on SVHN and CIFAR10.
 
-We compare with GAN on SVHN by following the procedure outlined in
+We first compare with GAN on SVHN by following the procedure outlined in
 \citet{radford2015unsupervised}. We train an L2-SVM on the learned
 representations of a model trained on SVHN. The last three hidden layers of the
 encoder as well as its output are concatenated to form a 8960-dimensional
@@ -575,7 +575,7 @@ lower than reported in \citet{radford2015unsupervised}
 (\autoref{tab:semi-supervised-svhn}), which suggests that ALI's inference
 mechanism is beneficial to the semi-supervised learning task.
 
-Next, we investigate ALI's performance when label information is taken into
+We then investigate ALI's performance when label information is taken into
 account during training. We adapt the discriminative model proposed in
 \citet{Salimans2016gan}. The discriminator takes $x$ and $z$ as input and
 outputs a distribution over $K + 1$ classes, where $K$ is the number of
@@ -588,7 +588,7 @@ Interestingly, \citet{Salimans2016gan} found that they required an alternative
 training strategy for the generator where it tries to match first-order
 statistics in the discriminator's intermediate activations with respect to the
 data distribution (they refer to this as {\em feature matching}). We found that
-ALI did not require feature matching to achieve comparable results. We achieve
+ALI did not require feature matching to obtain comparable results. We achieve
 results competitive with the state-of-the-art, as shown in
 Tables \ref{tab:semi-supervised-svhn} and \ref{tab:semi-supervised-cifar10}.
 
