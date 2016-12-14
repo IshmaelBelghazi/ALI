@@ -338,9 +338,8 @@ The column attributes are
 
 ## Semi-supervised learning
 
-ALI achieves a performance competitive with state-of-the-art on the
-semi-supervised SVHN and CIFAR10 tasks. We adapt the discriminative model
-proposed in Salimans et al. (2016) [^1] to take both x and z as input.
+We investigate the usefulness of the latent representation learned by ALI
+through semi-supervised benchmarks on SVHN and CIFAR10.
 
 ### SVHN
 
@@ -351,6 +350,7 @@ proposed in Salimans et al. (2016) [^1] to take both x and z as input.
 | DCGAN + L2-SVM [^3]                 | 22.18          |
 | SDGM [^4]                           | 16.61          |
 | **GAN (feature matching)** [^7]     | **8.11 ± 1.3** |
+| **ALI (ours, L2-SVM)**              | 19.14 ± 0.50   |
 | **ALI (ours, no feature matching)** | **7.3**        |
 
 ### CIFAR10
@@ -362,11 +362,37 @@ proposed in Salimans et al. (2016) [^1] to take both x and z as input.
 | **GAN (feature matching)** [^7]     | **21.83 ± 2.01** | **19.61 ± 2.09** | **18.63 ± 2.32** | **17.72 ± 1.82** |
 | **ALI (ours, no feature matching)** | **20.88**        | **20.28**        | **18.3**         | **17.77**        |
 
-Interestingly, Salimans et al. (2016) found that they required an alternative
-training strategy for the generator where it tries to match first-order
-statistics in the discriminator’s intermediate activations with respect to the
-data distribution (they refer to this as feature matching). We found that ALI
-did not require feature matching to achieve comparable results.
+### Discussion
+
+We first compare with GAN on SVHN by following the procedure outlined in Radford
+et al. (2015) [^3]. We train an L2-SVM on the learned representations of a model
+trained on SVHN. The last three hidden layers of the encoder as well as its
+output are concatenated to form a 8960-dimensional feature vector. A 10,000
+example held-out validation set is taken from the training set and is used for
+model selection. The SVM is trained on 1000 examples taken at random from the
+remainder of the training set. The test error rate is measured for 100 different
+SVMs trained on different random 1000-example training sets, and the average
+error rate is measured along with its standard deviation.
+
+Using ALI’s inference network as opposed to the discriminator to extract
+features, we achieve a misclassification rate that is roughly 3.00 ± 0.50% lower
+than reported in Radford et al. (2015) [^3], which suggests that ALI’s
+inference mechanism is beneficial to the semi-supervised learning task.
+
+We then investigate ALI’s performance when label information is taken into
+account during training. We adapt the discriminative model proposed in Salimans
+et al. (2016) [^7]. The discriminator takes \\(x\\) and \\(z\\) as input and
+outputs a distribution over \\(K + 1\\) classes, where \\(K\\) is the number of
+categories. When label information is available for \\(q(x, z)\\) samples, the
+discriminator is expected to predict the label. When no label information is
+available, the discriminator is expected to predict \\(K + 1\\) for \\(p(x, z)\\)
+samples and \\(k \\in \\{1,\\ldots,K\\}\\) for \\(q(x,z)\\) samples.
+
+Interestingly, Salimans et al. (2016) [^7] found that they required an
+alternative training strategy for the generator where it tries to match
+first-order statistics in the discriminator’s intermediate activations with
+respect to the data distribution (they refer to this as feature matching). We
+found that ALI did not require feature matching to achieve comparable results.
 
 We are still investigating the differences between ALI and GAN with respect to
 feature matching, but we conjecture that the latent representation learned by
@@ -381,8 +407,8 @@ The adversarially learned inference (ALI) model jointly learns a generation
 network and an inference network using an adversarial process. The model learns
 mutually coherent inference and generation networks, as exhibited by its
 reconstructions. The induced latent variable mapping is shown to be useful,
-achieving competitive results on semi-supervised SVHN house number
-classification.
+achieving results competitive with the state-of-the-art on the semi-supervised
+SVHN and CIFAR10 tasks.
 
 ---
 
