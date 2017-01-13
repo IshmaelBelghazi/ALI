@@ -624,8 +624,11 @@ training strategy for the generator where it tries to match first-order
 statistics in the discriminator's intermediate activations with respect to the
 data distribution (they refer to this as {\em feature matching}). We found that
 ALI did not require feature matching to obtain comparable results. We achieve
-results competitive with the state-of-the-art, as shown in
-Tables \ref{tab:semi-supervised-svhn} and \ref{tab:semi-supervised-cifar10}.
+results competitive with the state-of-the-art, as shown in Tables
+\ref{tab:semi-supervised-svhn} and \ref{tab:semi-supervised-cifar10}.
+\autoref{tab:semi-supervised-cifar10} shows that ALI offers a modest improvement
+over \citet{Salimans2016gan}, more specifically for 1000 and 2000 labeled
+examples.
 
 \begin{table}[ht]
 \caption{\label{tab:semi-supervised-svhn} SVHN test set missclassification rate}.
@@ -649,7 +652,7 @@ SDGM \citep{maaloe2016auxiliary}                        & $16.61$ \\ \midrule
 \begin{table}[ht]
 \caption{\label{tab:semi-supervised-cifar10} CIFAR10 test set missclassification
     rate for semi-supervised learning using different numbers of trained labeled
-    examples.}
+    examples. For ALI, error bars correspond to 3 times the standard deviation.}
 \centering
 \scalebox{0.75}{
 \begin{tabular}{@{}lllll@{}} \toprule
@@ -658,7 +661,7 @@ Model & \multicolumn{4}{c}{Misclassification rate} \\ \midrule
 Ladder network \citep{ladder2015}              &              &      & $20.40$ &   \\
 CatGAN \citep{catgan2015}                      &              &      & $19.58$ &   \\ \midrule
 \textbf{GAN (feature matching) \citep{Salimans2016gan}} & $\mathbf{21.83 \pm 2.01}$ & $\mathbf{19.61 \pm 2.09}$ & $\mathbf{18.63 \pm 2.32}$ & $\mathbf{17.72 \pm 1.82}$ \\
-\textbf{ALI (ours, no feature matching)} & $\textbf{19.98 \pm 0.30}$ & $\textbf{19.09 \pm 0.15}$ & $\textbf{17.99 \pm 0.54}$ & $\textbf{17.05 \pm 0.50}$ \\
+\textbf{ALI (ours, no feature matching)} & $\mathbf{19.98 \pm 0.89}$ & $\mathbf{19.09 \pm 0.44}$ & $\mathbf{17.99 \pm 1.62}$ & $\mathbf{17.05 \pm 1.49}$ \\
 \bottomrule
 \end{tabular}
 }
