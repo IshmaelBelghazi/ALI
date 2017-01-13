@@ -296,30 +296,30 @@ ways:
 The ALI training procedure is not the only way one could learn a feedforward
 inference network in a GAN setting.
 
+In recent work, \citet{chen2016infogan} introduce a model called InfoGAN which
+minimizes the mutual information between a subset $\bm{c}$ of the latent code
+and $\bm{x}$ through the use of an auxiliary distribution $Q(\bm{c} \mid
+\bm{x})$. However, this does not correspond to full inference on $\bm{z}$, as
+only the value for $\bm{c}$ is inferred. Additionally, InfoGAN requires that
+$Q(\bf{c} \mid \bf{x})$ is a tractable approximate posterior that can be sampled
+from and evaluated. ALI only requires that inference networks can be sampled
+from, allowing it to represent arbitrarily complex posterior distributions.
+
 One could learn the inverse mapping from GAN samples: this corresponds to
 learning an encoder to reconstruct $\bm{z}$, i.e. finding an encoder such that
-$\mathrm{encode}(\mathrm{decode}(\bm{z} \sim p(\bm{z}))) \approx \bm{z}$. We are
-not aware of any work that reports results for this approach. A possible pitfall
-is that if the generator ignores certain modes of the data distribution, the
-encoder will perform poorly at test time when presented with data sampled from
-these modes.
+$\mathbb{E}_{z \sim p(z)}[\|z - G_z(G_x(z))\|_2^2] \approx 0$. We are not aware
+of any work that reports results for this approach. This resembles the InfoGAN
+learning procedure but with a fixed generative model and a factorial Gaussian
+posterior with a fixed diagonal variance.
 
-One could also decompose training into two phases. In the first phase, a GAN is
-trained normally. In the second phase, the GAN's decoder is frozen and an
-encoder is trained following the ALI procedure. We call this {\em post-hoc
-learned inference}. In this setting, the encoder and the decoder cannot interact
-together during training and the encoder must work with whatever the decoder has
-learned during GAN training. Post-hoc learned inference may be suboptimal if
-this interaction is beneficial to modeling the data distribution.
-
-Finally, in recent work, \citet{chen2016infogan} introduce a model called
-InfoGAN which minimizes the mutual information between a subset $\bm{c}$ of the
-latent code and $\bm{x}$ through the use of an auxiliary distribution $Q(\bm{c}
-\mid \bm{x})$. However, this does not correspond to full inference on $\bm{z}$,
-as only the value for $\bm{c}$ is inferred. Additionally, InfoGAN requires that
-$Q(c \mid x)$ is a tractable approximate posterior that can be sampled from and
-evaluated.  ALI only requires that inference networks can be sampled from,
-allowing it to represent arbitrarily complex posterior distributions.
+Alternatively, one could decompose training into two phases. In the first phase,
+a GAN is trained normally. In the second phase, the GAN's decoder is frozen and
+an encoder is trained following the ALI procedure (i.e., a discriminator taking
+{\em both} $\bm{x}$ and $\bm{z}$ as input is introduced). We call this {\em
+post-hoc learned inference}. In this setting, the encoder and the decoder cannot
+interact together during training and the encoder must work with whatever the
+decoder has learned during GAN training. Post-hoc learned inference may be
+suboptimal if this interaction is beneficial to modeling the data distribution.
 
 \subsection{Generator value function}
 
@@ -494,8 +494,11 @@ the name Bidirectional GAN (BiGAN), in which the authors emphasize the learned
 features' usefulness for auxiliary supervised and semi-supervised tasks. The
 main difference in terms of experimental setting is that they use a
 deterministic $q(\bm{z} \mid \bm{x})$ network, whereas we use a stochastic
-network. In our experience, this does not make a big difference: stochastic
-inference networks tend to become deterministic as training progresses.
+network. In our experience, this does not make a big difference when $\bm{x}$ is
+a deterministic function of $\bm{z}$ as the stochastic inference networks tend
+to become determinstic as training progresses. When using stochastic mappings
+from $\bm{z}$ to $\bm{x}$, the additional flexiblity of stochastic posteriors is
+critical.
 
 \section{Experimental results}
 
@@ -641,8 +644,8 @@ SWWAE with dropout \citep{zhao2015stacked}              & $23.56$ \\
 DCGAN + L2-SVM \citep{radford2015unsupervised}          & $22.18$ \\
 SDGM \citep{maaloe2016auxiliary}                        & $16.61$ \\ \midrule
 \textbf{GAN (feature matching) \citep{Salimans2016gan}} & $\mathbf{8.11 \pm 1.3}$ \\
-\textbf{ALI (ours, L2-SVM)}                             & $19.14 \pm 0.50$ \\
-\textbf{ALI (ours, no feature matching)}                & $\textbf{7.3}$ \\
+        ALI (ours, L2-SVM)                              & $19.14 \pm 0.50$ \\
+\textbf{ALI (ours, no feature matching)}                & $\mathbf{7.3}$ \\
 \bottomrule
 \end{tabular}
 }
@@ -708,8 +711,12 @@ shown in \autoref{fig:celeba_conditional_sequence}.
 \begin{figure}[htb!]
     \centering
     \includegraphics[width=\textwidth]{mixture_plot.png}
-    \caption{\label{fig:mixture_plot} Qualitative comparison of ALI, GAN and VAE
-    in terms of reconstruction and latent representation.}
+    \caption{\label{fig:mixture_plot} Comparison of (a) ALI, (b) GAN with an
+    encoder learned to reconstruct latent samples (c) GAN with an encoder
+    learned through ALI, (d) variational autoencoder (VAE) on a 2D toy dataset.
+    The ALI model in (a) does a much better job of covering the latent space
+    (second row) and producing good samples than the two GAN models (b, c)
+    augmented with an inference mechanism.}
 \end{figure}
 
 To highlight the role of the inference network during learning, we performed an
@@ -720,10 +727,12 @@ large low-probability regions, which makes it a decently hard task despite the
 2D nature of the dataset.
 
 We trained ALI and GAN on 100,000 $q(\bm{x})$ samples. The decoder and
-discriminator architectures are identical between ALI and GAN. Each model was
-trained 10 times using Adam \citep{kingma2014adam} with random learning rate and
-$\beta_1$ values, and the weights were initialized by drawing from a gaussian
-distribution with a random standard deviation.
+discriminator architectures are identical between ALI and GAN (except for the
+input of the discriminator, which receives the concatenation of $\bf{x}$ and
+$\bf{z}$ in the ALI case). Each model was trained 10 times using Adam
+\citep{kingma2014adam} with random learning rate and $\beta_1$ values, and the
+weights were initialized by drawing from a gaussian distribution with a random
+standard deviation.
 
 We measured the extent to which the trained models covered all 25 modes by
 drawing 10,000 samples from their $p(\bm{x})$ distribution and assigning each
@@ -764,12 +773,12 @@ experiment. We observe the following:
         c). However, it appears to be better at matching $q(\bm{z})$ and
         $p(\bm{z})$ than when inference is learned through inverse mapping from
         GAN samples.
-    \item Due to the nature of the loss function being optimized, VAEs cover all
-        modes easily (row 5, column d) and excels at reconstructing data samples
-        (row 3, column d). However, they have a much more pronounced tendency to
-        smear out their probability density (row 5, column d) and leave
-        ``holes'' in $\bf{q(z)}$ (row 2, column d). Note however that recent
-        approaches such as Inverse Autoregressive Flow
+    \item Due to the nature of the loss function being optimized, the VAE model
+        covers all modes easily (row 5, column d) and excels at reconstructing
+        data samples (row 3, column d). However, they have a much more
+        pronounced tendency to smear out their probability density (row 5,
+        column d) and leave ``holes'' in $\bf{q(z)}$ (row 2, column d). Note
+        however that recent approaches such as Inverse Autoregressive Flow
         \citep{kingma2016improving} may be used to improve on this, at the cost
         of a more complex mathematical framework.
 \end{itemize}
