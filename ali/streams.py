@@ -45,9 +45,10 @@ def create_cifar10_data_streams(batch_size, monitoring_batch_size, rng=None):
     return main_loop_stream, train_monitor_stream, valid_monitor_stream
 
 
-def create_celeba_data_streams(batch_size, monitoring_batch_size, rng=None):
-    train_set = CelebA('64', ('train',), sources=('features',))
-    valid_set = CelebA('64', ('valid',), sources=('features',))
+def create_celeba_data_streams(batch_size, monitoring_batch_size,
+                               sources=('features', ), rng=None):
+    train_set = CelebA('64', ('train',), sources=sources)
+    valid_set = CelebA('64', ('valid',), sources=sources)
     main_loop_stream = DataStream.default_stream(
         train_set,
         iteration_scheme=ShuffledScheme(
