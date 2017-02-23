@@ -18,6 +18,7 @@ title: {{ site.name }}
     * [Latent space interpolations](#interpolations)
     * [Conditional generation](#conditional)
     * [Semi-supervised learning](#semi_supervised)
+    * [Comparison with GAN on a toy dataset](#toy_dataset)
 * [Conclusion](#conclusion)
 
 ---
@@ -343,15 +344,15 @@ through semi-supervised benchmarks on SVHN and CIFAR10.
 
 ### SVHN
 
-| Number of labeled examples          | 1000           |
-| ----------------------------------- | -------------- |
-| VAE (M1 + M2) [^1]                  | 36.02          |
-| SWWAE with dropout [^2]             | 23.56          |
-| DCGAN + L2-SVM [^3]                 | 22.18          |
-| SDGM [^4]                           | 16.61          |
-| **GAN (feature matching)** [^7]     | **8.11 ± 1.3** |
-| **ALI (ours, L2-SVM)**              | 19.14 ± 0.50   |
-| **ALI (ours, no feature matching)** | **7.3**        |
+| Number of labeled examples          | 1000            |
+| ----------------------------------- | --------------- |
+| VAE (M1 + M2) [^1]                  | 36.02           |
+| SWWAE with dropout [^2]             | 23.56           |
+| DCGAN + L2-SVM [^3]                 | 22.18           |
+| SDGM [^4]                           | 16.61           |
+| **GAN (feature matching)** [^7]     | **8.11 ± 1.3**  |
+| **ALI (ours, L2-SVM)**              | 19.14 ± 0.50    |
+| **ALI (ours, no feature matching)** | **7.42 ± 0.65** |
 
 ### CIFAR10
 
@@ -360,7 +361,7 @@ through semi-supervised benchmarks on SVHN and CIFAR10.
 | Ladder network [^5]                 |                  |                  | 20.40            |                  |
 | CatGAN [^6]                         |                  |                  | 19.58            |                  |
 | **GAN (feature matching)** [^7]     | **21.83 ± 2.01** | **19.61 ± 2.09** | **18.63 ± 2.32** | **17.72 ± 1.82** |
-| **ALI (ours, no feature matching)** | **20.88**        | **20.28**        | **18.3**         | **17.77**        |
+| **ALI (ours, no feature matching)** | **19.98 ± 0.89** | **19.09 ± 0.44** | **17.99 ± 1.62** | **17.05 ± 1.49** |
 
 ### Discussion
 
@@ -398,6 +399,88 @@ We are still investigating the differences between ALI and GAN with respect to
 feature matching, but we conjecture that the latent representation learned by
 ALI is better untangled with respect to the classification task and that it
 generalizes better.
+
+<a name="toy_dataset"></a>
+
+## Comparison with GAN on a toy dataset
+
+![Toy dataset]({{ site.baseurl }}/assets/mixture_plot.png)
+
+To highlight the role of the inference network during learning, we performed an
+experiment on a toy dataset for which \\(q(x)\\) is a 2D gaussian mixture with
+25 mixture components laid out on a grid. The covariance matrices and centroids
+have been chosen such that the distribution exhibits lots of modes separated by
+large low-probability regions, which makes it a decently hard task despite the
+2D nature of the dataset.
+
+We trained ALI and GAN on 100,000 \\(q(x)\\) samples. The decoder and
+discriminator architectures are identical between ALI and GAN (except for the
+input of the discriminator, which receives the concatenation of x and z in the
+ALI case).  Each model was trained 10 times using Adam with random learning rate
+and \\(\beta_1\\) values, and the weights were initialized by drawing from a
+gaussian distribution with a random standard deviation.
+
+We measured the extent to which the trained models covered all 25 modes by
+drawing 10,000 samples from their \\(p(x)\\) distribution and assigning each
+sample to a \\(q(x)\\) mixture component according to the mixture
+responsibilities. We defined a dropped mode as one that wasn’t assigned to any
+sample. Using this definition, we found that ALI models covered 13.4 ± 5.8 modes
+on average (min: 8, max: 25) while GAN models covered 10.4 ± 9.2 modes on
+average (min: 1, max: 22).
+
+We then selected the best-covering ALI and GAN models, and the GAN model was
+augmented with an encoder using the following procedures:
+
+* **learned inverse mapping** : A mapping from \\(x\\) to \\(z\\) is learned
+  from GAN samples. This corresponds to learning an encoder to reconstruct
+  \\(z\\), i.e. finding an encoder such that
+  \\(\mathbb{E}_{z \sim p(z)}[\mid\mid z − G_z(G_x(z))\mid\mid_2^2] \approx 0\\).
+  We are not aware of any work that reports results for this approach. This
+  resembles the InfoGAN learning procedure but with a fixed generative model and
+  a factorial Gaussian posterior with a fixed diagonal variance.
+* **post-hoc learned inference**: Training is decomposed into two phases. In the
+  first phase, a GAN is trained normally. In the second phase, the GAN’s decoder
+  is frozen and an encoder is trained following the ALI procedure (i.e., a
+  discriminator taking both \\(x\\) and \\(z\\) as input is introduced). In this
+  setting, the encoder and the decoder cannot interact together during training
+  and the encoder must work with whatever the decoder has learned during GAN
+  training.
+
+The encoders learned for GAN inference have the same architecture as ALI’s
+encoder. We also trained a VAE with the same encoder-decoder architecture as ALI
+to outline the qualitative differences between ALI and VAE models.
+
+We then compared each model’s inference capabilities by reconstructing 10,000
+held-out samples from \\(q(x)\\) (see figure above). We observe the following:
+
+* The ALI encoder models a marginal distribution \\(q(z)\\) that matches
+  \\(p(z)\\) fairly well (row 2, column a). The learned representation does a
+  decent job at clustering and organizing the different mixture components.
+* The GAN generator (row 5, columns b-c) has more trouble reaching all the modes
+  than the ALI generator (row 5, column a), even over 10 runs of hyperparameter
+  search.
+* Learning an inverse mapping from GAN samples does not work very well: the
+  encoder has trouble covering the prior marginally and the way it clusters
+  mixture components is not very well organized (row 2, column b).
+  Reconstructions suffer from the generator dropping modes.
+* Learning inference post-hoc doesn’t work as well as training the encoder and
+  the decoder jointly. It appears that adversarial training benefits from
+  learning inference at training time in terms of mode coverage. This also
+  negatively impacts how the latent space is organized (row 2, column c).
+  However, it appears to be better at matching \\(q(z)\\) and \\(p(z)\\) than
+  when inference is learned through inverse mapping from GAN samples.
+* Due to the nature of the loss function being optimized, the VAE model covers
+  all modes easily (row 5, column d) and excels at reconstructing data samples
+  (row 3, column d). However, VAEs have a much more pronounced tendency to smear
+  out their probability density (row 5, column d) and leave "holes" in
+  \\(q(z)\\) (row 2, column d). Note however that recent approaches such as
+  Inverse Autoregressive Flow may be used to improve on this, at the cost of a
+  more complex mathematical framework.
+
+In summary, this experiment provides evidence that adversarial training benefits
+from learning an inference mechanism jointly with the decoder. Furthermore, it
+shows that our proposed approach for learning inference in an adversarial
+setting is superior to the other approaches investigated.
 
 <a name="conclusion"></a>
 
